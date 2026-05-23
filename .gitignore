@@ -1,12 +1,30 @@
+# 依存パッケージ
 node_modules
+
+# ビルド成果物
 dist
 dist-ssr
+*.tsbuildinfo
+
+# テストカバレッジ（実行のたびに再生成される）
+coverage
+
+# 開発用デザインリソース
 .design
+
+# 環境変数（APIキー等の機密情報を含む）
 .env
 .env.local
 .env.*.local
+
+# ログ
 *.log
+
+# OS / エディタの自動生成物
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Claude Code のローカル設定（ユーザー個別）
+.claude/settings.local.json
