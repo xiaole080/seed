@@ -1,0 +1,20 @@
+{
+  "name": "Seed — セルフケア",
+  "short_name": "Seed",
+  "description": "毎日の体調と気分を、鳥といっしょに記録するセルフケアアプリ",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0eee9",
+  "theme_color": "#7FA982",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

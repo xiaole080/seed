@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Yu Gothic',
+    system-ui, sans-serif;
+  background: #f0eee9;
+  color: #2F3A2F;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* スマホ・PWA フルスクリーン: セーフエリアを尊重 */
+.phone-app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  background: #f0eee9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* デフォルト (PC): デバイス枠を表示 */
+.phone-frame {
+  width: min(100vw, 390px);
+  height: min(100vh, 780px);
+  max-width: 390px;
+  max-height: 780px;
+  background: #FBF7EE;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12);
+  border-radius: min(28px, 1vw);
+  overflow: hidden;
+  position: relative;
+}
+
+/* モバイル / PWA standalone: フルブリード, 枠なし, セーフエリアを padding に */
+@media (max-width: 480px) {
+  .phone-app-shell {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+  .phone-frame {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ホーム画面に追加された PWA で起動した場合も同様にフルブリード */
+@media (display-mode: standalone) {
+  .phone-frame {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@keyframes seed-breath {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50%      { transform: scale(1.04) translateY(-2px); }
+}
+@keyframes seed-twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1.2); }
+}
+@keyframes seed-hop {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25%      { transform: translateY(-12px) rotate(-4deg); }
+  50%      { transform: translateY(0) rotate(0deg); }
+  75%      { transform: translateY(-6px) rotate(4deg); }
+}
