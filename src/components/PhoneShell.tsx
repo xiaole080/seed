@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { PALETTE, ROUNDED_FONT } from '../theme';
-import { StatusBar } from './StatusBar';
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -31,7 +30,6 @@ export function PhoneShell({
         ...style,
       }}
     >
-      <StatusBar />
       {children}
     </div>
   );

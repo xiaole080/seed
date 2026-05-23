@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { PALETTE, ROUNDED_FONT } from '../theme';
-import { StatusBar } from '../components/StatusBar';
 import { BottomTabs, type TabId } from '../components/BottomTabs';
 import { BirdStage } from '../components/BirdStage';
 import { REGIONS } from '../data/regions';
@@ -129,14 +128,12 @@ export function HomeScreen({
         overflow: 'hidden',
       }}
     >
-      <StatusBar />
-
       <div
         style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
+          overflow: 'auto',
         }}
       >
         <div
@@ -363,11 +360,9 @@ export function HomeScreen({
           </div>
         </div>
 
-        <div style={{ flex: 1 }} />
-
         <div
           style={{
-            padding: '12px 24px 16px',
+            padding: '12px 24px 24px',
             display: 'flex',
             flexDirection: 'column',
             gap: 10,
