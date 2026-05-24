@@ -1,8 +1,12 @@
 // App の結合テスト: フェーズ遷移とルーティング、記録フローを通しで確認する。
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('App — 初期表示', () => {
   it('localStorage が空なら同意画面から始まる', () => {
@@ -80,6 +84,78 @@ describe('App — マイグレーション後の初期表示 (T17 / Phase 2a)', 
 
     expect(() => render(<App />)).not.toThrow();
     expect(screen.getByText('はじめに', { exact: false })).toBeInTheDocument();
+  });
+});
+
+// T1/T2: today カードは現在日 + DEFAULT_SCHEDULE と attendance ストアから派生する。
+//   - 旧 state.todayMode を localStorage に持っていても、土日は休み判定になる。
+//   - 既に checkOut まで打刻された attendance レコードがあれば、CheckIn 画面は
+//     'checkedOut' 状態で開き、実打刻時刻が表示される。
+describe('App — today カードの派生 (T1/T2)', () => {
+  // 月曜の DEFAULT_SCHEDULE は office なので、テストの安定性のため Date を固定する。
+  // 2026-05-30 (土) は DEFAULT_SCHEDULE[5] = off になる。
+  it('旧 state.todayMode="office" を持っていても、土曜起動ならホームに「お休みの日」が出る', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-30T10:00:00'));
+
+    localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+    // 旧スキーマの state: todayMode='office' / todayBand='full' を残したまま
+    localStorage.setItem(
+      'seed.app.state.v1',
+      JSON.stringify({
+        nickname: 'はる',
+        todayMode: 'office',
+        todayBand: 'full',
+      }),
+    );
+
+    render(<App />);
+    // ホームの ATTENDANCE 領域に「きょうはお休みの日」が出る (T5 文言)
+    expect(screen.getByText(/きょうはお休みの日/)).toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
+  it('attendance レコードを直接書き込んでから起動すると、CheckIn 画面が checkedOut + 実打刻時刻で開く', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    // 月曜 → office
+    vi.setSystemTime(new Date('2026-05-25T16:00:00'));
+    const user = userEvent.setup();
+
+    const date = '2026-05-25';
+    localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+    localStorage.setItem(
+      'seed.attendance.v1',
+      JSON.stringify({
+        [date]: {
+          localAttendanceId: `att_${date}`,
+          date,
+          weekday: 'Mon',
+          plannedMode: 'office',
+          plannedBand: 'full',
+          actualMode: 'office',
+          checkIn: '09:42',
+          checkOut: '15:08',
+          durationMinutes: 326,
+          missingClock: false,
+          edited: false,
+          exportMonth: '2026-05',
+        },
+      }),
+    );
+
+    render(<App />);
+    // ホームの ATTENDANCE をクリックして打刻画面へ
+    await user.click(screen.getByText('ATTENDANCE'));
+    // 実打刻時刻が反映されている (T2 / T3)。打刻カード + 「(09:42 〜 15:08)」の2箇所に出る。
+    expect(screen.getAllByText(/09:42/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/15:08/).length).toBeGreaterThan(0);
+    // checkedOut 用の文言が出ている (T3)
+    expect(screen.getByText('おつかれさまでした')).toBeInTheDocument();
+    // T3: 時刻レンジが「(09:42 〜 15:08)」形式で添えられる
+    expect(screen.getByText(/\(09:42 〜 15:08\)/)).toBeInTheDocument();
+
+    vi.useRealTimers();
   });
 });
 

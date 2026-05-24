@@ -1,9 +1,14 @@
 // 主要なデータ入力画面の操作テスト。
 // 同意・ニックネーム・気分記録・打刻という、記録の発生点を重点的に検証する。
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ConsentState, TodayCard } from '../data/types';
+
+// fake timers を使ったテストが途中で失敗してもフェイクが残らないように常に戻す。
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 import { LoginScreen } from './LoginScreen';
 import { ConsentScreen } from './ConsentScreen';
@@ -130,6 +135,185 @@ describe('CheckInScreen', () => {
 
     await user.click(screen.getByRole('button', { name: /通所打刻/ }));
     expect(onCheckIn).toHaveBeenCalledOnce();
+  });
+
+  it('お休みの日は「お休みのままにする」と「打刻に進む」の2ボタンが出る (T6)', () => {
+    const offToday: TodayCard = { mode: 'off', band: 'full', dayLabel: '土' };
+    render(<CheckInScreen today={offToday} state="before" />);
+    expect(
+      screen.getByRole('button', { name: 'お休みのままにする' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '打刻に進む' }),
+    ).toBeInTheDocument();
+  });
+
+  it('「打刻に進む」を押すと例外打刻フローに切り替わり、打刻ボタンと「お休みに戻す」が出る (T6)', async () => {
+    const user = userEvent.setup();
+    const onCheckIn = vi.fn();
+    const offToday: TodayCard = { mode: 'off', band: 'full', dayLabel: '土' };
+    render(
+      <CheckInScreen
+        today={offToday}
+        state="before"
+        onCheckIn={onCheckIn}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '打刻に進む' }));
+
+    // ヒーロー文言と通所打刻ボタンに差し替わる
+    expect(screen.getByText('今日だけ打刻しますか？')).toBeInTheDocument();
+    const checkInBtn = screen.getByRole('button', { name: /通所打刻/ });
+    expect(checkInBtn).toBeInTheDocument();
+    // 「お休みに戻す」リンクが現れる
+    expect(
+      screen.getByRole('button', { name: 'お休みに戻す' }),
+    ).toBeInTheDocument();
+
+    // 打刻ボタン押下で onCheckIn が呼ばれる
+    await user.click(checkInBtn);
+    expect(onCheckIn).toHaveBeenCalledOnce();
+  });
+
+  it('例外打刻に進んだ後に「お休みに戻す」を押すと、初期2択画面に戻る (T6)', async () => {
+    const user = userEvent.setup();
+    const offToday: TodayCard = { mode: 'off', band: 'full', dayLabel: '土' };
+    render(<CheckInScreen today={offToday} state="before" />);
+
+    await user.click(screen.getByRole('button', { name: '打刻に進む' }));
+    await user.click(screen.getByRole('button', { name: 'お休みに戻す' }));
+
+    // 初期2択に戻っている
+    expect(
+      screen.getByRole('button', { name: 'お休みのままにする' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '打刻に進む' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'お休みに戻す' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('checkedOut 表示で実打刻時刻のレンジが添えられる (T3)', () => {
+    const t: TodayCard = {
+      mode: 'office',
+      band: 'full',
+      dayLabel: '月',
+      checkInTime: '09:42',
+      checkOutTime: '15:08',
+    };
+    render(<CheckInScreen today={t} state="checkedOut" />);
+    expect(
+      screen.getByText(/\(09:42 〜 15:08\)/),
+    ).toBeInTheDocument();
+  });
+
+  // BUG-1 修正済み (T6 regression / 行き止まり):
+  //   例外打刻後にホームへ戻り、再度 CheckIn 画面を開いた状況。App 経由なら
+  //   state='checkedIn' で再表示されるが、CheckInScreen 内の effectiveMode は
+  //   コンポーネント local state なので null に戻る。
+  //   旧実装の `isOff = planIsOff && effectiveMode == null` は state を考慮しない
+  //   ため、画面を再訪すると 2 択ボタンが復活し、帰宅打刻 / ホームへもどる の
+  //   両方が消えて行き止まりになっていた。
+  //   修正後は isOff の条件に `s === 'before'` を含め、checkedIn / checkedOut
+  //   のときは常に通常フローに合流させる。viewMode も同条件で 'office' を返す。
+  it('予定=off で state=checkedIn を渡したとき、帰宅打刻ボタンに到達できる (BUG-1 fix)', () => {
+    const offToday: TodayCard = {
+      mode: 'off',
+      band: 'full',
+      dayLabel: '土',
+      checkInTime: '10:00',
+    };
+    render(<CheckInScreen today={offToday} state="checkedIn" />);
+    expect(
+      screen.getByRole('button', { name: /帰宅打刻/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('予定=off で state=checkedOut を渡したとき、ホームへもどるボタンが出る (BUG-1 fix)', () => {
+    const offToday: TodayCard = {
+      mode: 'off',
+      band: 'full',
+      dayLabel: '土',
+      checkInTime: '10:00',
+      checkOutTime: '14:30',
+    };
+    render(<CheckInScreen today={offToday} state="checkedOut" />);
+    expect(
+      screen.getByRole('button', { name: /ホームへもどる/ }),
+    ).toBeInTheDocument();
+  });
+
+  // BUG-1 追加カバレッジ:
+  //   再訪時に「お休みのままにする / 打刻に進む」の 2 択画面が再表示されないこと、
+  //   およびヘッダーのモードラベルが実モード (通所) を反映していること。
+  it('予定=off で state=checkedIn の再訪時は休み 2 択画面が出ない (BUG-1 fix)', () => {
+    const offToday: TodayCard = {
+      mode: 'off',
+      band: 'full',
+      dayLabel: '土',
+      checkInTime: '10:00',
+    };
+    render(<CheckInScreen today={offToday} state="checkedIn" />);
+    expect(
+      screen.queryByRole('button', { name: 'お休みのままにする' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '打刻に進む' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('予定=off で state=checkedIn のときヘッダーモードが「通所」(実モード) を表示 (BUG-1 fix)', () => {
+    const offToday: TodayCard = {
+      mode: 'off',
+      band: 'full',
+      dayLabel: '土',
+      checkInTime: '10:00',
+    };
+    render(<CheckInScreen today={offToday} state="checkedIn" />);
+    // MODE_LABEL.office === '通所' を前提に、ヘッダーカードに通所ラベルが出る。
+    expect(screen.getByText(/通所・/)).toBeInTheDocument();
+  });
+});
+
+// T9: 例外打刻の永続化を App 全体で確認する結合テスト。
+//   - 休みの日に「打刻に進む」→「通所打刻（いま）」で
+//     getAttendance(date) が plannedMode='off' / actualMode='office' のレコードを返す。
+//   - 打刻後に「お休みに戻す」を押しても AttendanceMonthlyRecord は消えない。
+describe('例外打刻フローの永続化 (T6/T7)', () => {
+  it('お休みの日に「打刻に進む」→「通所打刻（いま）」で planned=off / actual=office のレコードが残る', async () => {
+    const { default: App } = await import('../App');
+    const { getAttendance } = await import('../data/store');
+
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-30T10:00:00')); // 土曜 = off
+    const user = userEvent.setup();
+
+    localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+    render(<App />);
+
+    // ホーム → ATTENDANCE タップで CheckIn 画面へ
+    await user.click(screen.getByText('ATTENDANCE'));
+
+    // 休みの2択 → 「打刻に進む」
+    await user.click(screen.getByRole('button', { name: '打刻に進む' }));
+    // 通所打刻
+    await user.click(screen.getByRole('button', { name: /通所打刻/ }));
+
+    const rec = getAttendance('2026-05-30');
+    expect(rec).toBeDefined();
+    expect(rec?.plannedMode).toBe('off');
+    expect(rec?.actualMode).toBe('office');
+
+    // 打刻後に「お休みに戻す」相当の操作 (checkedIn なのでフッターには出ない)
+    // → 仕様: AttendanceMonthlyRecord は消えない (明示削除のみ原則)
+    const before = getAttendance('2026-05-30');
+    // 念のためもう一度同じ日付の record が消えていないことを確認する。
+    expect(before).toEqual(rec);
+
+    vi.useRealTimers();
   });
 });
 

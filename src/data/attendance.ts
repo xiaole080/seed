@@ -1,4 +1,9 @@
-import type { AttendanceMode, Schedule, TimeBand } from './types';
+import type {
+  AttendanceMode,
+  AttendanceMonthlyRecord,
+  Schedule,
+  TimeBand,
+} from './types';
 
 export const DAYS = ['月', '火', '水', '木', '金', '土', '日'] as const;
 
@@ -32,3 +37,12 @@ export const DEFAULT_SCHEDULE: Schedule = {
   5: { mode: 'off',    band: 'full' },
   6: { mode: 'off',    band: 'full' },
 };
+
+/**
+ * 例外打刻 (休み予定の日に実際に打刻した) を判定するヘルパー。
+ * 予定が `off` + 実打刻が記録されている (actualMode が undefined でない) 場合に true。
+ * 集計や支援員側の確認に使う。
+ */
+export function isExceptionalCheckIn(rec: AttendanceMonthlyRecord): boolean {
+  return rec.plannedMode === 'off' && rec.actualMode != null;
+}

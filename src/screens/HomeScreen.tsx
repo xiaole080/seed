@@ -59,7 +59,9 @@ const BAND_LABEL_HOME: Record<TodayCard['band'], string> = {
 
 function attendanceLines(today: TodayCard | null, state: AttendanceState) {
   if (!today || today.mode === 'off') {
-    return { title: '休みの日', sub: 'ゆっくりすごしましょう' };
+    // T5: 休みの日は文言を統一し、ATTENDANCE タップで CheckInScreen に遷移できるよう
+    // 「打刻に進む →」のヒントを併記する (実際の表示は呼び出し側で isAttendable に従って付ける)。
+    return { title: 'きょうはお休みの日', sub: 'ゆっくり過ごしてくださいね' };
   }
   const m = MODE_LABEL_HOME[today.mode] ?? '通所';
   const b = BAND_LABEL_HOME[today.band] ?? '一日';
@@ -71,9 +73,9 @@ function attendanceLines(today: TodayCard | null, state: AttendanceState) {
         ? '到着したら打刻してね'
         : '在宅でつないでいきましょう';
   } else if (state === 'checkedIn') {
-    sub = `${today.checkInTime ?? '9:42'} にチェックイン済み`;
+    sub = `${today.checkInTime ?? '— : —'} にチェックイン済み`;
   } else if (state === 'checkedOut') {
-    sub = `${today.checkInTime ?? '9:42'} 〜 ${today.checkOutTime ?? '15:08'}`;
+    sub = `${today.checkInTime ?? '— : —'} 〜 ${today.checkOutTime ?? '— : —'}`;
   }
   return { title, sub };
 }
@@ -150,7 +152,10 @@ export function HomeScreen({
   const WEEKDAY_JP = ['日', '月', '火', '水', '木', '金', '土'];
   const weekday = `${WEEKDAY_JP[now.getDay()]}曜日`;
   const att = attendanceLines(today, attendanceState);
-  const isAttendable = !!today && today.mode !== 'off';
+  // T5: 休みの日でも CheckInScreen への遷移は可。
+  // 例外打刻の入り口は CheckInScreen 側 (お休みのままにする / 打刻に進む) で確認する。
+  const isAttendable = !!today;
+  const isOffDay = !!today && today.mode === 'off';
 
   // 「修正する」を押した時に出す確認ブロック (T6: confirm() ではなくインライン)
   const [confirmTarget, setConfirmTarget] = useState<'today' | 'yesterday' | null>(
@@ -385,7 +390,7 @@ export function HomeScreen({
                   <span
                     style={{ color: PALETTE.sageDeep, fontWeight: 700 }}
                   >
-                    タップで打刻 →
+                    {isOffDay ? '打刻に進む →' : 'タップで打刻 →'}
                   </span>
                 </>
               )}

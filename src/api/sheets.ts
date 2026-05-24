@@ -277,6 +277,7 @@ export function logMood(payload: MoodLogPayload, nickname?: string) {
 }
 
 export interface CheckInPayload {
+  /** 実モード (actualMode)。予定が 'off' でも例外打刻時は 'office' が入る。 */
   mode: TodayCard['mode'];
   band: TodayCard['band'];
   state: AttendanceState;

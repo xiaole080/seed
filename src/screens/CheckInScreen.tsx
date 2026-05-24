@@ -4,7 +4,7 @@ import { PhoneShell } from '../components/PhoneShell';
 import { BackgroundLeaves } from '../components/BackgroundLeaves';
 import { BottomTabs, type TabId } from '../components/BottomTabs';
 import { BAND_LABEL, MODE_COLOR, MODE_LABEL } from '../data/attendance';
-import type { AttendanceState, TodayCard } from '../data/types';
+import type { AttendanceMode, AttendanceState, TodayCard } from '../data/types';
 
 interface CheckInScreenProps {
   today?: TodayCard;
@@ -45,8 +45,6 @@ export function CheckInScreen({
     mode: 'office',
     band: 'full',
     dayLabel: '土',
-    checkInTime: '9:42',
-    checkOutTime: '15:08',
   },
   state = 'before',
   nickname = 'はる',
@@ -58,26 +56,46 @@ export function CheckInScreen({
   const [s, setS] = useState<AttendanceState>(state);
   useEffect(() => setS(state), [state]);
 
-  const isOffice = today.mode === 'office';
-  const isHome = today.mode === 'home';
-  const isOff = today.mode === 'off';
-  const c = MODE_COLOR[today.mode];
+  // T6: お休みの日の例外打刻。ローカル state のみ (localStorage には保存しない)。
+  // 「お休みのままにする/打刻に進む」の2択で切り替え、画面離脱や翌日には初期状態へ戻る。
+  const [effectiveMode, setEffectiveMode] = useState<AttendanceMode | null>(null);
+  // today が外側で変わった (日付跨ぎ等) ら例外打刻状態はリセット
+  useEffect(() => {
+    setEffectiveMode(null);
+  }, [today.mode]);
 
-  const inTime = today.checkInTime ?? '9:42';
-  const outTime = today.checkOutTime ?? '15:08';
+  const planIsOff = today.mode === 'off';
+  // 例外打刻に進んだ場合は office 表示として扱う。
+  // BUG-1 修正: 例外打刻後 (checkedIn / checkedOut) に再訪したときは
+  // effectiveMode が null にリセットされても、state を根拠に実モード (office) を
+  // 表示する。これがないと「お休み」ラベルのまま帰宅打刻ボタンが出ない。
+  const viewMode: AttendanceMode =
+    s !== 'before' && planIsOff
+      ? 'office'
+      : (effectiveMode ?? today.mode);
+  const isOffice = viewMode === 'office';
+  const isHome = viewMode === 'home';
+  // 「初期の休み2択画面」を出す条件: 予定が休み かつ まだ「打刻に進む」を選んでいない
+  // かつ 未打刻 (s === 'before')。打刻済みのときは通常フローに合流させる (BUG-1)。
+  const isOff = planIsOff && effectiveMode == null && s === 'before';
+  const c = MODE_COLOR[viewMode];
 
-  const heroEmoji =
-    s === 'before'
-      ? isOffice
-        ? '🚪'
-        : isHome
-        ? '🏠'
-        : '🌿'
-      : s === 'checkedIn'
-      ? isOffice
-        ? '✓'
-        : '🏠'
-      : '🌙';
+  const inTime = today.checkInTime ?? '— : —';
+  const outTime = today.checkOutTime ?? '— : —';
+
+  const heroEmoji = isOff
+    ? '🌿'
+    : s === 'before'
+    ? isOffice
+      ? '🚪'
+      : isHome
+      ? '🏠'
+      : '🌿'
+    : s === 'checkedIn'
+    ? isOffice
+      ? '✓'
+      : '🏠'
+    : '🌙';
 
   const handleCheckIn = () => {
     setS('checkedIn');
@@ -193,7 +211,7 @@ export function CheckInScreen({
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 16, fontWeight: 700 }}>
-                {MODE_LABEL[today.mode]}・{BAND_LABEL[today.band]}
+                {MODE_LABEL[viewMode]}・{BAND_LABEL[today.band]}
               </div>
               <div
                 style={{ fontSize: 11, color: PALETTE.inkSoft, marginTop: 2 }}
@@ -314,8 +332,27 @@ export function CheckInScreen({
             {heroEmoji}
           </div>
           <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.5 }}>
-            {TITLE_BY_STATE[s][today.mode]}
+            {isOff
+              ? 'きょうはお休みの日ですね'
+              : planIsOff && effectiveMode != null && s === 'before'
+              ? '今日だけ打刻しますか？'
+              : TITLE_BY_STATE[s][viewMode]}
           </div>
+          {/* T3: checkedOut のとき、打刻時刻レンジを見切れずに添える。 */}
+          {s === 'checkedOut' && today.checkInTime && today.checkOutTime && (
+            <div
+              style={{
+                fontSize: 12,
+                color: PALETTE.inkSoft,
+                marginTop: 6,
+                lineHeight: 1.6,
+                padding: '0 4px',
+                wordBreak: 'keep-all',
+              }}
+            >
+              ({today.checkInTime} 〜 {today.checkOutTime})
+            </div>
+          )}
           <div
             style={{
               fontSize: 11,
@@ -324,7 +361,11 @@ export function CheckInScreen({
               lineHeight: 1.6,
             }}
           >
-            {nickname}さんのペースで大丈夫です。
+            {isOff
+              ? 'もし通所する場合は、打刻に進めます'
+              : planIsOff && effectiveMode != null && s === 'before'
+              ? '予定はお休みのままです'
+              : `${nickname}さんのペースで大丈夫です。`}
           </div>
         </div>
 
@@ -419,28 +460,72 @@ export function CheckInScreen({
             >
               時刻を手で直す
             </button>
+
+            {/* T6: 予定が休み × 例外打刻に進んだ後の「お休みに戻す」リンク。
+                打刻データは触らない (この場で AttendanceMonthlyRecord は消さない)。 */}
+            {planIsOff && effectiveMode != null && s === 'before' && (
+              <button
+                onClick={() => setEffectiveMode(null)}
+                style={{
+                  width: '100%',
+                  height: 36,
+                  border: 'none',
+                  background: 'transparent',
+                  color: PALETTE.inkSoft,
+                  fontSize: 12,
+                  fontFamily: ROUNDED_FONT,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  textDecorationColor: PALETTE.sage,
+                  textUnderlineOffset: 3,
+                }}
+              >
+                お休みに戻す
+              </button>
+            )}
           </div>
         )}
 
         {isOff && (
-          <button
-            onClick={onBack}
-            style={{
-              width: '100%',
-              height: 56,
-              border: 'none',
-              borderRadius: 18,
-              background: PALETTE.sageDeep,
-              color: '#fff',
-              fontSize: 15,
-              fontWeight: 700,
-              fontFamily: ROUNDED_FONT,
-              boxShadow: '0 6px 16px rgba(127,169,130,0.32)',
-              cursor: 'pointer',
-            }}
-          >
-            ホームへもどる
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* T6 メイン: お休みのままにする (ホームへ戻る) */}
+            <button
+              onClick={onBack}
+              style={{
+                width: '100%',
+                height: 56,
+                border: 'none',
+                borderRadius: 18,
+                background: PALETTE.sageDeep,
+                color: '#fff',
+                fontSize: 15,
+                fontWeight: 700,
+                fontFamily: ROUNDED_FONT,
+                boxShadow: '0 6px 16px rgba(127,169,130,0.32)',
+                cursor: 'pointer',
+              }}
+            >
+              お休みのままにする
+            </button>
+            {/* T6 サブ: 打刻に進む (枠線セカンダリ。effectiveMode=office に切替) */}
+            <button
+              onClick={() => setEffectiveMode('office')}
+              style={{
+                width: '100%',
+                height: 48,
+                border: `1.5px solid ${PALETTE.sage}`,
+                borderRadius: 16,
+                background: '#fff',
+                color: PALETTE.sageDeep,
+                fontSize: 13,
+                fontWeight: 700,
+                fontFamily: ROUNDED_FONT,
+                cursor: 'pointer',
+              }}
+            >
+              打刻に進む
+            </button>
+          </div>
         )}
 
         <div

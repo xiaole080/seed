@@ -74,6 +74,8 @@ function diffMinutes(start: string, end: string): number | undefined {
   return eh * 60 + em - (sh * 60 + sm);
 }
 
+const WEEKDAY_JP_LABELS = ['日', '月', '火', '水', '木', '金', '土'] as const;
+
 type Phase =
   | 'consent'
   | 'login'
@@ -108,8 +110,6 @@ interface AppState {
   streak: number;
   totalDays: number;
   attendanceState: AttendanceState;
-  todayMode: TodayCard['mode'];
-  todayBand: TodayCard['band'];
   lastMood: Mood;
   eggSpecies: EggSpeciesId;
   eggTrait: EggTraitId | null;
@@ -127,8 +127,6 @@ const INITIAL_STATE: AppState = {
   streak: 0,
   totalDays: 0,
   attendanceState: 'before',
-  todayMode: 'office',
-  todayBand: 'full',
   lastMood: 4,
   eggSpecies: 'chicken',
   eggTrait: null,
@@ -206,13 +204,17 @@ export default function App() {
   });
   const [route, setRoute] = useState<Route>('home');
   const [state, setState] = useState<AppState>(() => {
-    const loaded = loadJson<Partial<AppState> & { region?: unknown }>(
-      STORAGE_KEY_STATE,
-      {},
-    );
+    const loaded = loadJson<
+      Partial<AppState> & { region?: unknown; todayMode?: unknown; todayBand?: unknown }
+    >(STORAGE_KEY_STATE, {});
+    // T1: 旧スキーマにあった todayMode / todayBand は派生値化したため捨てる。
+    // 既存テスター端末で残っていても無視する (永続化時には自然に消える)。
+    const { todayMode: _tm, todayBand: _tb, ...rest } = loaded;
+    void _tm;
+    void _tb;
     return {
       ...INITIAL_STATE,
-      ...loaded,
+      ...rest,
       // 旧データ (string の RegionId) を SelectedRegion へ正規化する。
       region: normalizeRegion(loaded.region ?? INITIAL_STATE.region),
     };
@@ -256,16 +258,39 @@ export default function App() {
   const streak    = useMemo(() => currentStreak(),    [storeTick]);
   const stage     = deriveStage(streak, state.manualStage);
 
-  const today: TodayCard = useMemo(
-    () => ({
-      mode: state.todayMode,
-      band: state.todayBand,
-      dayLabel: '土',
-      checkInTime: '9:42',
-      checkOutTime: '15:08',
-    }),
-    [state.todayMode, state.todayBand],
-  );
+  // 現在日 + ユーザの schedule から「今日のカード」を派生させる。
+  // - state には固定値を持たない (T1: 旧 todayMode/todayBand 廃止)
+  // - 実打刻時刻 (checkInTime / checkOutTime) は AttendanceMonthlyRecord から引く (T2)
+  // - 日付が変わる or 打刻が増えるたびに再計算が走るよう deps に dateKey と storeTick を入れる
+  const dateKey = todayISO();
+  const today: TodayCard = useMemo(() => {
+    const slot = scheduleSlotFor(dateKey, state.schedule);
+    const [y, m, d] = dateKey.split('-').map(Number);
+    const dayLabel = WEEKDAY_JP_LABELS[new Date(y, m - 1, d).getDay()];
+    const rec = getAttendance(dateKey);
+    return {
+      mode: slot?.mode ?? 'off',
+      band: slot?.band ?? 'full',
+      dayLabel,
+      checkInTime: rec?.checkIn,
+      checkOutTime: rec?.checkOut,
+    };
+  }, [dateKey, state.schedule, storeTick]);
+
+  // 起動時 (および日付跨ぎ後) に attendanceState を今日のレコードから再判定する。
+  // 前日の 'checkedOut' を引きずって新しい日にも「退室済み」と表示しないようにする。
+  useEffect(() => {
+    const rec = getAttendance(dateKey);
+    const next: AttendanceState =
+      rec?.checkOut != null
+        ? 'checkedOut'
+        : rec?.checkIn != null
+        ? 'checkedIn'
+        : 'before';
+    setState((prev) =>
+      prev.attendanceState === next ? prev : { ...prev, attendanceState: next },
+    );
+  }, [dateKey]);
 
   const update = (patch: Partial<AppState>) =>
     setState((prev) => ({ ...prev, ...patch }));
@@ -300,15 +325,20 @@ export default function App() {
     update({ attendanceState: 'checkedIn' });
     const time = nowHHmm();
     const rec = ensureTodayAttendance();
+    // T6/T7: 予定が休み (off) の日でも CheckInScreen から「打刻に進む」で
+    // 進入した場合は例外打刻として扱う。actualMode は 'office' を入れる
+    // (plannedMode='off' + actualMode='office' で支援員側が例外を識別する)。
+    const actual: TodayCard['mode'] =
+      today.mode === 'off' ? 'office' : today.mode;
     upsertAttendance({
       ...rec,
-      actualMode: today.mode,
+      actualMode: actual,
       checkIn: time,
       missingClock: false,
     });
     bumpStore();
     logCheckIn(
-      { mode: today.mode, band: today.band, state: 'checkedIn', time },
+      { mode: actual, band: today.band, state: 'checkedIn', time },
       state.nickname,
     );
   };
@@ -320,16 +350,19 @@ export default function App() {
     const checkIn = rec.checkIn;
     const durationMinutes =
       checkIn != null ? diffMinutes(checkIn, time) : undefined;
+    // T6/T7: 退室時も例外打刻 (planned=off) の場合は actualMode='office' に揃える。
+    const actual: TodayCard['mode'] =
+      rec.actualMode ?? (today.mode === 'off' ? 'office' : today.mode);
     upsertAttendance({
       ...rec,
-      actualMode: rec.actualMode ?? today.mode,
+      actualMode: actual,
       checkOut: time,
       durationMinutes,
       missingClock: rec.checkIn == null, // 入室時刻が無いまま退室は未打刻扱い
     });
     bumpStore();
     logCheckOut(
-      { mode: today.mode, band: today.band, state: 'checkedOut', time },
+      { mode: actual, band: today.band, state: 'checkedOut', time },
       state.nickname,
     );
   };
