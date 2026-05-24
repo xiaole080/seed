@@ -1,6 +1,14 @@
 import { loadJson, saveJson } from '../storage';
 import { CARE_GOALS_KEY } from './store';
 import type { Goal, UserTask, Whisper } from './types';
+import {
+  addOneOffTask,
+  deleteOneOffTask,
+  getOneOffTasksForDate,
+  loadOneOffTasks,
+  updateOneOffTask,
+  type OneOffTask,
+} from './routines';
 
 export const DEFAULT_GOALS: Goal[] = [
   { id: 'g1', icon: '🌙', text: '23時までに ふとんに入る', kind: 'sleep',    progress: 5, target: 7, active: true },
@@ -50,52 +58,56 @@ export interface CareGoalsStore {
 export function loadCareGoals(): CareGoalsStore {
   const v = loadJson<Partial<CareGoalsStore>>(CARE_GOALS_KEY, {});
   return {
-    smallGoals: Array.isArray(v.smallGoals) ? v.smallGoals : [],
+    // smallGoals は OneOffTask へ実体が移ったが、後方互換のためここで合成して返す。
+    smallGoals: oneOffsToSmallGoals(loadOneOffTasks()),
     concernGoals: Array.isArray(v.concernGoals) ? v.concernGoals : [],
   };
 }
 
+/**
+ * 0.3.0 以降は smallGoals は OneOffTask の薄いラッパなので、
+ * saveCareGoals では concernGoals のみを保存する (smallGoals は無視する)。
+ */
 export function saveCareGoals(store: CareGoalsStore): void {
-  saveJson(CARE_GOALS_KEY, store);
+  saveJson(CARE_GOALS_KEY, {
+    smallGoals: [],
+    concernGoals: store.concernGoals,
+  });
 }
 
-/** 指定日 (既定: 今日) の小さな目標だけを返す */
+function oneOffsToSmallGoals(list: OneOffTask[]): SmallGoal[] {
+  return list.map((t) => ({
+    id: t.id,
+    date: t.date,
+    text: t.text,
+    done: !!t.done,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+  }));
+}
+
+/** 指定日 (既定: 今日) の小さな目標だけを返す (内部は OneOffTask)。 */
 export function getSmallGoalsForDate(date: string): SmallGoal[] {
-  return loadCareGoals().smallGoals.filter((g) => g.date === date);
+  return oneOffsToSmallGoals(getOneOffTasksForDate(date));
 }
 
 export function addSmallGoal(text: string, date: string): SmallGoal | null {
-  const trimmed = text.trim();
-  if (!trimmed) return null;
-  const goal: SmallGoal = {
-    id: `sg_${Date.now()}`,
-    date,
-    text: trimmed,
-    done: false,
-    createdAt: new Date().toISOString(),
-  };
-  const store = loadCareGoals();
-  saveCareGoals({ ...store, smallGoals: [...store.smallGoals, goal] });
-  return goal;
+  const created = addOneOffTask({ text, date });
+  if (!created) return null;
+  return oneOffsToSmallGoals([created])[0];
 }
 
 export function updateSmallGoal(id: string, patch: Partial<SmallGoal>): void {
-  const store = loadCareGoals();
-  const now = new Date().toISOString();
-  saveCareGoals({
-    ...store,
-    smallGoals: store.smallGoals.map((g) =>
-      g.id === id ? { ...g, ...patch, updatedAt: now } : g,
-    ),
-  });
+  // SmallGoal の patch は OneOffTask とほぼ 1:1。text / date / done のみ通す。
+  const oneOffPatch: Partial<OneOffTask> = {};
+  if (patch.text != null) oneOffPatch.text = patch.text;
+  if (patch.date != null) oneOffPatch.date = patch.date;
+  if (patch.done != null) oneOffPatch.done = patch.done;
+  updateOneOffTask(id, oneOffPatch);
 }
 
 export function deleteSmallGoal(id: string): void {
-  const store = loadCareGoals();
-  saveCareGoals({
-    ...store,
-    smallGoals: store.smallGoals.filter((g) => g.id !== id),
-  });
+  deleteOneOffTask(id);
 }
 
 export function addConcernGoal(text: string): ConcernGoal | null {

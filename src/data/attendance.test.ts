@@ -6,6 +6,7 @@ import {
   BAND_LABEL,
   DEFAULT_SCHEDULE,
   isExceptionalCheckIn,
+  isOfficeClosed,
 } from './attendance';
 import { scheduleSlotFor } from './store';
 import type { AttendanceMonthlyRecord } from './types';
@@ -73,6 +74,73 @@ describe('scheduleSlotFor — DEFAULT_SCHEDULE の各曜日', () => {
     // 仕様 §2-3 の代表ケース。土日は休み判定が崩れない。
     const slot = scheduleSlotFor('2026-05-31', DEFAULT_SCHEDULE);
     expect(slot?.mode).toBe('off');
+  });
+});
+
+describe('isOfficeClosed — Sprint 2026-05-24 / バグ① 事務所休業日判定', () => {
+  // 仕様: 土曜・日曜 + 毎月最終金曜日 を休業日扱いにする。
+  // 祝日特別扱いなし。dateISO はローカル日付として解釈する。
+  it('土曜 (2026-05-30) は休業', () => {
+    expect(isOfficeClosed('2026-05-30')).toBe(true);
+  });
+
+  it('日曜 (2026-05-31) は休業', () => {
+    expect(isOfficeClosed('2026-05-31')).toBe(true);
+  });
+
+  it('毎月最終金曜日 (2026-05-29) は休業', () => {
+    // 2026-05-29 は金曜。+7 日後の 2026-06-05 は別月なので「最終金曜」。
+    expect(isOfficeClosed('2026-05-29')).toBe(true);
+  });
+
+  it('最終でない金曜 (2026-05-22) は営業', () => {
+    // 2026-05-22 は金曜。+7 日後の 2026-05-29 も同月 → 最終ではない。
+    expect(isOfficeClosed('2026-05-22')).toBe(false);
+  });
+
+  it('平日の木曜 (2026-05-28) は営業', () => {
+    expect(isOfficeClosed('2026-05-28')).toBe(false);
+  });
+
+  it('12 月最終金曜 (2026-12-25) は休業', () => {
+    // 2026-12-25 は金曜。+7 日後は 2027-01-01 (翌年) → 最終金曜。
+    expect(isOfficeClosed('2026-12-25')).toBe(true);
+  });
+
+  it('うるう年 2024-02-29 (木) は最終金曜ではない平日 = 営業', () => {
+    expect(isOfficeClosed('2024-02-29')).toBe(false);
+  });
+
+  it('うるう年 2024-02-23 (金) は 2 月最終金曜 = 休業', () => {
+    // 2024-02-23 は金曜。+7 日後の 2024-03-01 は別月 → 最終金曜。
+    expect(isOfficeClosed('2024-02-23')).toBe(true);
+  });
+
+  // QA 追加 (Sprint 2026-05-24): PM 検証スコープで指定された
+  // 「月末が金曜のケース」「最終週に金曜が複数あるケースがないこと」を確認する。
+  it('月末日 = 金曜のケース (2026-07-31) は最終金曜 = 休業', () => {
+    // 2026-07-31 は金曜 (=その月最後の日)。+7 日後 2026-08-07 は翌月 → 最終金曜。
+    expect(isOfficeClosed('2026-07-31')).toBe(true);
+  });
+
+  it('月末が金曜の月 (2026-07) で、その 1 週間前の金曜 (2026-07-24) は最終金曜ではない = 営業', () => {
+    // 2026-07-24 は金曜。+7 後 2026-07-31 も同月 → 最終ではない。
+    // 「最終週に金曜が複数」を取り違える実装でも片方が休業判定にならないことを確認。
+    expect(isOfficeClosed('2026-07-24')).toBe(false);
+  });
+
+  it('5 週ある月 (2026-01) の 5 回目の金曜 (2026-01-30) が最終金曜 = 休業', () => {
+    expect(isOfficeClosed('2026-01-30')).toBe(true);
+  });
+
+  it('5 週ある月 (2026-01) の 4 回目の金曜 (2026-01-23) は最終ではない = 営業', () => {
+    expect(isOfficeClosed('2026-01-23')).toBe(false);
+  });
+
+  it('不正な日付文字列を渡しても例外を投げない (防御コード)', () => {
+    // 'not-a-date' のような壊れた値が来ても false を返すか、少なくとも throw しない。
+    // (壊れた値で休業扱いになるよりは「営業日扱い」のほうが UI が止まらない)
+    expect(() => isOfficeClosed('not-a-date')).not.toThrow();
   });
 });
 

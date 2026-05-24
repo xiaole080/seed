@@ -18,6 +18,7 @@ import { loadJson, saveJson } from './storage';
 import type {
   AttendanceMonthlyRecord,
   AttendanceState,
+  ClosedDayActivity,
   ConsentState,
   EggSpeciesId,
   EggTraitId,
@@ -50,6 +51,7 @@ import {
   nowHHmm,
   nowISO,
   scheduleSlotFor,
+  setClosedDayActivity,
   todayISO,
   upsertAttendance,
   upsertDailyRecord,
@@ -253,16 +255,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ← 鳥成長は「ユニークな記録日数」から派生する。
-  //    同じ日に何回 submit しても 1日分にしかカウントしない (連続日数も同様)。
-  const totalDays = useMemo(() => countRecordedDays(), [storeTick]);
-  const streak    = useMemo(() => currentStreak(),    [storeTick]);
-  const stage     = deriveStage(streak, state.manualStage);
-
-  // 現在日 + ユーザの schedule から「今日のカード」を派生させる。
-  // - state には固定値を持たない (T1: 旧 todayMode/todayBand 廃止)
-  // - 実打刻時刻 (checkInTime / checkOutTime) は AttendanceMonthlyRecord から引く (T2)
-  // - 日付が変わる or 打刻が増えるたびに再計算が走るよう deps に dateKey と storeTick を入れる
+  // 現在日 (YYYY-MM-DD) の追跡。後段の totalDays / streak / today などの
+  // useMemo deps に入れて、日付跨ぎ時に再計算させる。
   //
   // T1-B: アプリを開きっぱなしで日付が跨いだとき、dateKey が再評価されないと
   // 「前日の打刻状態」のまま表示されてしまう。1 分ごとに todayISO() を再判定し、
@@ -284,6 +278,22 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVis);
     };
   }, []);
+
+  // ← 鳥成長は「ユニークな記録日数」から派生する。
+  //    同じ日に何回 submit しても 1日分にしかカウントしない (連続日数も同様)。
+  //
+  // バグ③ 修正: deps に dateKey を含めないと、アプリを開きっぱなしで日付が
+  // 跨いだとき currentStreak() が前日基準のまま固定されてしまい、ケア画面の
+  // 鳥バー (totalDays) や streak が再計算されない。dateKey を追加することで
+  // 日付跨ぎ後も自然に再評価される。
+  const totalDays = useMemo(() => countRecordedDays(), [storeTick, dateKey]);
+  const streak    = useMemo(() => currentStreak(),    [storeTick, dateKey]);
+  const stage     = deriveStage(streak, state.manualStage);
+
+  // 現在日 + ユーザの schedule から「今日のカード」を派生させる。
+  // - state には固定値を持たない (T1: 旧 todayMode/todayBand 廃止)
+  // - 実打刻時刻 (checkInTime / checkOutTime) は AttendanceMonthlyRecord から引く (T2)
+  // - 日付が変わる or 打刻が増えるたびに再計算が走るよう deps に dateKey と storeTick を入れる
   const today: TodayCard = useMemo(() => {
     const slot = scheduleSlotFor(dateKey, state.schedule);
     const [y, m, d] = dateKey.split('-').map(Number);
@@ -295,6 +305,9 @@ export default function App() {
       dayLabel,
       checkInTime: rec?.checkIn,
       checkOutTime: rec?.checkOut,
+      // バグ② 修正: CheckInScreen のヘッダー日付を動的化するため
+      // today.dateISO で現在日 (YYYY-MM-DD) を渡す。
+      dateISO: dateKey,
     };
   }, [dateKey, state.schedule, storeTick]);
 
@@ -422,6 +435,14 @@ export default function App() {
   const handleDeleteToday = () => {
     deleteAttendance(todayISO());
     update({ attendanceState: 'before' });
+    bumpStore();
+  };
+
+  // 案 X: 事務所休業日の「軽い記録」を保存する。
+  // localStorage の seed.daily.v1 にだけ書き込み、Sheets/CSV には流さない。
+  // 1 日 1 つ・上書き保存 (再選択すると最新値で差し替え)。
+  const handleClosedDayActivity = (value: ClosedDayActivity) => {
+    setClosedDayActivity(todayISO(), value);
     bumpStore();
   };
 
@@ -576,16 +597,20 @@ export default function App() {
       />
     );
   } else if (route === 'checkin') {
+    // 事務所休業日の「軽い記録」現在値を渡す (ボタン下の「記録済み」表示用)
+    const todayDaily = getDailyRecord(dateKey);
     inner = (
       <CheckInScreen
         today={today}
         state={state.attendanceState}
         nickname={state.nickname}
+        closedDayActivity={todayDaily?.closedDayActivity}
         onBack={() => setRoute('home')}
         onCheckIn={handleCheckIn}
         onCheckOut={handleCheckOut}
         onTimeEdit={handleTimeEdit}
         onDelete={handleDeleteToday}
+        onClosedDayActivity={handleClosedDayActivity}
         onTab={(t) => setRoute(t)}
       />
     );
@@ -634,6 +659,7 @@ export default function App() {
         totalDays={totalDays}
         eggName={state.eggName}
         nickname={state.nickname}
+        schedule={state.schedule}
         onTab={(t) => setRoute(t)}
       />
     );

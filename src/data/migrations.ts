@@ -12,10 +12,21 @@
 // 0.1.0 → 0.2.0 の変更点 (Sprint 2026-05-24):
 //  - ConsentState に `weatherApiConsent` を追加 (既存ユーザは 'notAsked' で静かに移行)。
 //  - `consentVersion` を 'v1.0' → 'v1.1' に書き換える (再同意画面は出さない)。
+//
+// 0.2.0 → 0.3.0 の変更点 (CareScreen 3 層構造リデザイン):
+//  - 旧 `seed.care.goals.v1.smallGoals` を `seed.tasks.oneoff.v1` (OneOffTask[]) に移行する。
+//  - 移行後、`smallGoals` は空配列で上書きする (二重表示の防止)。
+//  - `concernGoals` はそのまま保持する。
+//  - 壊れた smallGoals データはスキップして起動を止めない。
 
 import { loadJson, saveJson } from '../storage';
 import type { ConsentState } from './types';
 import type { StoredDailyRecord } from './store';
+import {
+  CARE_GOALS_KEY,
+  ONEOFF_TASKS_KEY,
+} from './store';
+import type { OneOffTask } from './routines';
 
 type DailyMap = Record<
   string,
@@ -23,7 +34,7 @@ type DailyMap = Record<
 >;
 
 /** 現行のスキーマバージョン。新しいマイグレを足したら必ず上げる。 */
-export const CURRENT_SCHEMA_VERSION = '0.2.0';
+export const CURRENT_SCHEMA_VERSION = '0.3.0';
 
 /** schemaVersion を保存する localStorage キー (新設)。 */
 export const SCHEMA_VERSION_KEY = 'seed.schema.version';
@@ -119,6 +130,78 @@ function migrateConsent_0_1_0_to_0_2_0(): void {
 }
 
 /**
+ * 0.2.0 → 0.3.0
+ *  - 旧 smallGoals (CareScreen の「ちいさな目標」) を OneOffTask[] へ正規化移行。
+ *  - 移行後、smallGoals は空配列に上書きする。
+ *  - concernGoals はそのまま残す。
+ *  - 壊れた smallGoals 要素 (id / text / date が無い等) はスキップする。
+ *  - 既に oneoff キーがあれば前に追加する形でマージ (重複生成は防ぐ)。
+ */
+function migrateSmallGoalsToOneOff_0_2_0_to_0_3_0(): void {
+  try {
+    type LegacySmallGoal = {
+      id?: unknown;
+      date?: unknown;
+      text?: unknown;
+      done?: unknown;
+      createdAt?: unknown;
+      updatedAt?: unknown;
+    };
+    type LegacyCareStore = {
+      smallGoals?: LegacySmallGoal[];
+      concernGoals?: unknown;
+    };
+    const care = loadJson<LegacyCareStore | null>(CARE_GOALS_KEY, null);
+    if (care == null || typeof care !== 'object') return;
+    const oldList = Array.isArray(care.smallGoals) ? care.smallGoals : [];
+    if (oldList.length === 0) {
+      // smallGoals は無くても concernGoals だけ持つケースは触らない
+      return;
+    }
+
+    const migrated: OneOffTask[] = [];
+    for (const g of oldList) {
+      if (g == null || typeof g !== 'object') continue;
+      const id = typeof g.id === 'string' ? g.id : null;
+      const text = typeof g.text === 'string' ? g.text : null;
+      const date = typeof g.date === 'string' ? g.date : null;
+      if (!id || !text || !date) continue;
+      migrated.push({
+        id,
+        text,
+        date,
+        done: g.done === true,
+        createdAt:
+          typeof g.createdAt === 'string'
+            ? g.createdAt
+            : new Date(0).toISOString(),
+        updatedAt:
+          typeof g.updatedAt === 'string' ? g.updatedAt : undefined,
+      });
+    }
+
+    // 既存 oneoff があれば後ろに付ける (移行ぶんを先頭に置く)
+    const existing = loadJson<OneOffTask[]>(ONEOFF_TASKS_KEY, []);
+    const existingIds = new Set(
+      (Array.isArray(existing) ? existing : []).map((t) => t.id),
+    );
+    const merged = [
+      ...migrated.filter((t) => !existingIds.has(t.id)),
+      ...(Array.isArray(existing) ? existing : []),
+    ];
+    saveJson(ONEOFF_TASKS_KEY, merged);
+
+    // 元 smallGoals を空配列で上書き (concernGoals は残す)
+    saveJson(CARE_GOALS_KEY, {
+      ...care,
+      smallGoals: [],
+    });
+  } catch {
+    // 壊れたデータが混ざっていても本体起動は止めない。
+  }
+}
+
+/**
  * 起動時に1度だけ呼ぶ。失敗してもアプリ起動を止めない。
  */
 export function runMigrations(): void {
@@ -155,6 +238,13 @@ export function runMigrations(): void {
   if (version === '0.1.0') {
     migrateConsent_0_1_0_to_0_2_0();
     version = '0.2.0';
+    setStoredSchemaVersion(version);
+  }
+
+  // 0.2.0 → 0.3.0
+  if (version === '0.2.0') {
+    migrateSmallGoalsToOneOff_0_2_0_to_0_3_0();
+    version = '0.3.0';
     setStoredSchemaVersion(version);
   }
 

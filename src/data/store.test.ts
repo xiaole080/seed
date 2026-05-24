@@ -9,6 +9,7 @@ import {
   deleteAttendance,
   getAttendance,
   listAttendanceByMonth,
+  setClosedDayActivity,
   todayISO,
   nowISO,
   nowHHmm,
@@ -260,6 +261,95 @@ describe('store — 日付 / 曜日ヘルパ', () => {
   });
 });
 
+// Sprint 2026-05-24 / 案 X: 事務所休業日の「軽い記録」。
+// localStorage 完結 (seed.daily.v1 の closedDayActivity フィールド) で、
+// Sheets / CSV エクスポートには載せない設計。
+describe('store — setClosedDayActivity (案 X)', () => {
+  it('既存 DailyRecord が無い日に呼ぶと最小レコードを新規作成する', () => {
+    setClosedDayActivity('2026-05-30', 'home_rest');
+    const rec = getDailyRecord('2026-05-30');
+    expect(rec).toBeDefined();
+    expect(rec?.closedDayActivity).toBe('home_rest');
+    expect(rec?.date).toBe('2026-05-30');
+    // 新規作成時の missingness は「気分も未入力」として skippedMood=true
+    expect(rec?.missingness.skippedMood).toBe(true);
+  });
+
+  it('既存 DailyRecord がある日は closedDayActivity だけを additive に追加する', () => {
+    // まず通常の気分記録を作る
+    upsertDailyRecord({
+      ...({
+        localRecordId: 'r_2026-05-30',
+        date: '2026-05-30',
+        mood: 4,
+        primaryInfluence: ['sleep'],
+        note: '朝はだるかった',
+        missingness: { ...NO_MISSING, skippedMood: false },
+        createdAt: '2026-05-30T08:00:00.000Z',
+        updatedAt: '2026-05-30T08:00:00.000Z',
+      } as StoredDailyRecord),
+    });
+    setClosedDayActivity('2026-05-30', 'medical');
+    const rec = getDailyRecord('2026-05-30');
+    expect(rec?.mood).toBe(4);
+    expect(rec?.primaryInfluence).toEqual(['sleep']);
+    expect(rec?.note).toBe('朝はだるかった');
+    expect(rec?.closedDayActivity).toBe('medical');
+  });
+
+  it('同じ日に再度呼ぶと closedDayActivity が上書きされる (1 日 1 つの運用)', () => {
+    setClosedDayActivity('2026-05-30', 'home_rest');
+    setClosedDayActivity('2026-05-30', 'outing');
+    expect(getDailyRecord('2026-05-30')?.closedDayActivity).toBe('outing');
+  });
+
+  it('別キー (attendance / consent / careGoals) は触らない (localStorage 完結)', () => {
+    upsertAttendance(att('2026-05-25', { checkIn: '09:30' }));
+    localStorage.setItem('seed.consent.v1', '{"appTermsAccepted":true}');
+    localStorage.setItem(
+      'seed.care.goals.v1',
+      '{"smallGoals":[],"concernGoals":[]}',
+    );
+
+    setClosedDayActivity('2026-05-30', 'medical');
+
+    expect(getAttendance('2026-05-25')?.checkIn).toBe('09:30');
+    expect(localStorage.getItem('seed.consent.v1')).toBe(
+      '{"appTermsAccepted":true}',
+    );
+    expect(localStorage.getItem('seed.care.goals.v1')).toBe(
+      '{"smallGoals":[],"concernGoals":[]}',
+    );
+  });
+
+  it('localStorage に保存された JSON から closedDayActivity が直接読める', () => {
+    setClosedDayActivity('2026-05-30', 'outing');
+    const raw = JSON.parse(localStorage.getItem('seed.daily.v1') ?? '{}');
+    expect(raw['2026-05-30'].closedDayActivity).toBe('outing');
+  });
+
+  // T-C1: localStorage に書き込まれた中身を直接読んで確認する手順を
+  // テストとして残す (FE 手動確認時の参照用)。
+  it('不正な値は normalizeStored で undefined に正規化される (型ガード)', () => {
+    localStorage.setItem(
+      'seed.daily.v1',
+      JSON.stringify({
+        '2026-05-30': {
+          localRecordId: 'r',
+          date: '2026-05-30',
+          mood: 3,
+          primaryInfluence: [],
+          missingness: NO_MISSING,
+          createdAt: '2026-05-30T00:00:00.000Z',
+          updatedAt: '2026-05-30T00:00:00.000Z',
+          closedDayActivity: 'home_party', // 不正値
+        },
+      }),
+    );
+    expect(getDailyRecord('2026-05-30')?.closedDayActivity).toBeUndefined();
+  });
+});
+
 describe('store — 全データ削除 (A6)', () => {
   it('deleteAllLocalData は Seed の既知キーをすべて消す', () => {
     upsertDailyRecord(daily('2026-05-20'));
@@ -280,6 +370,31 @@ describe('store — 全データ削除 (A6)', () => {
     expect(localStorage.getItem('seed.outbox.v1')).toBeNull();
     expect(localStorage.getItem('seed.care.goals.v1')).toBeNull();
     expect(localStorage.getItem('seed.egg')).toBeNull();
+  });
+
+  it('deleteAllLocalData は routines / routine.logs / oneoff / notice も消す (0.3.0)', () => {
+    localStorage.setItem('seed.routines.v1', '[]');
+    localStorage.setItem('seed.routine.logs.v1', '{}');
+    localStorage.setItem('seed.tasks.oneoff.v1', '[]');
+    localStorage.setItem('seed.notice.routines.dismissed.v1', 'true');
+
+    deleteAllLocalData();
+
+    expect(localStorage.getItem('seed.routines.v1')).toBeNull();
+    expect(localStorage.getItem('seed.routine.logs.v1')).toBeNull();
+    expect(localStorage.getItem('seed.tasks.oneoff.v1')).toBeNull();
+    expect(localStorage.getItem('seed.notice.routines.dismissed.v1')).toBeNull();
+  });
+
+  it('deleteAllLocalData は closedDayActivity も seed.daily.v1 ごと消す (privacy 軽微 #1)', () => {
+    // 案 X の軽い記録を保存 → 全データ削除 → undefined を確認
+    setClosedDayActivity('2026-05-30', 'medical');
+    expect(getDailyRecord('2026-05-30')?.closedDayActivity).toBe('medical');
+
+    deleteAllLocalData();
+
+    expect(getDailyRecord('2026-05-30')?.closedDayActivity).toBeUndefined();
+    expect(localStorage.getItem('seed.daily.v1')).toBeNull();
   });
 });
 

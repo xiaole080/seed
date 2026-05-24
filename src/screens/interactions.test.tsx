@@ -501,40 +501,238 @@ describe('CheckInScreen', () => {
       screen.getByRole('button', { name: 'この打刻を取り消す' }),
     ).toBeInTheDocument();
   });
+
+  // ── Sprint 2026-05-24 / バグ① + 案 X: 事務所休業日の UI ─────
+  describe('事務所休業日 (バグ① + 案 X)', () => {
+    // 2026-05-30 (土) = 事務所休業日。schedule 上も off。
+    const closedSat: TodayCard = {
+      mode: 'off',
+      band: 'full',
+      dayLabel: '土',
+      dateISO: '2026-05-30',
+    };
+
+    it('休業日メッセージが表示される', () => {
+      render(<CheckInScreen today={closedSat} state="before" />);
+      expect(
+        screen.getByText(/本日は事務所休業日のため打刻できません/),
+      ).toBeInTheDocument();
+    });
+
+    it('「やっぱり通所する」ボタンが disabled になる', () => {
+      render(<CheckInScreen today={closedSat} state="before" />);
+      const btn = screen.getByRole('button', { name: 'やっぱり通所する' });
+      expect(btn).toBeDisabled();
+    });
+
+    it('案 X の 3 つの軽い記録ボタンが表示される', () => {
+      render(<CheckInScreen today={closedSat} state="before" />);
+      expect(
+        screen.getByRole('button', { name: '自宅で過ごした' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: '外出した' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: '通院した' }),
+      ).toBeInTheDocument();
+    });
+
+    it('軽い記録ボタンを押すと onClosedDayActivity に値が渡る', async () => {
+      const user = userEvent.setup();
+      const onClosedDayActivity = vi.fn();
+      render(
+        <CheckInScreen
+          today={closedSat}
+          state="before"
+          onClosedDayActivity={onClosedDayActivity}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: '外出した' }));
+      expect(onClosedDayActivity).toHaveBeenCalledWith('outing');
+    });
+
+    it('closedDayActivity を渡すと「(記録済み)」が表示される', () => {
+      render(
+        <CheckInScreen
+          today={closedSat}
+          state="before"
+          closedDayActivity="medical"
+        />,
+      );
+      expect(screen.getByText(/記録済み/)).toBeInTheDocument();
+    });
+
+    it('最終金曜 (2026-05-29) でも休業日 UI が出る', () => {
+      // schedule[4] (金) は本来 office/pm。dateISO が最終金曜なら closed 扱い。
+      const lastFri: TodayCard = {
+        mode: 'office',
+        band: 'pm',
+        dayLabel: '金',
+        dateISO: '2026-05-29',
+      };
+      render(<CheckInScreen today={lastFri} state="before" />);
+      expect(
+        screen.getByText(/本日は事務所休業日のため打刻できません/),
+      ).toBeInTheDocument();
+      // 通常打刻ボタン (planned=office なので isOff 分岐ではない) も disabled
+      const btn = screen.getByRole('button', { name: /通所打刻/ });
+      expect(btn).toBeDisabled();
+    });
+
+    it('営業日 (平日) では休業日 UI も軽い記録ボタンも出ない', () => {
+      const mon: TodayCard = {
+        mode: 'office',
+        band: 'full',
+        dayLabel: '月',
+        dateISO: '2026-05-25',
+      };
+      render(<CheckInScreen today={mon} state="before" />);
+      expect(
+        screen.queryByText(/本日は事務所休業日のため打刻できません/),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: '自宅で過ごした' }),
+      ).not.toBeInTheDocument();
+    });
+
+    // QA 追加: 平日に closedDayActivity が誤って渡されても (= localStorage 直書きや
+    // テスト等で混入)、UI 側は officeClosed=false なので「(記録済み)」を一切描画しない。
+    it('営業日 (平日) で closedDayActivity が渡っても「(記録済み)」は出ない (防御)', () => {
+      const mon: TodayCard = {
+        mode: 'office',
+        band: 'full',
+        dayLabel: '月',
+        dateISO: '2026-05-25',
+      };
+      render(
+        <CheckInScreen
+          today={mon}
+          state="before"
+          closedDayActivity="home_rest"
+        />,
+      );
+      expect(screen.queryByText(/記録済み/)).not.toBeInTheDocument();
+    });
+
+    // QA 追加: today.dateISO が無い (旧呼び出し元) でも officeClosed=false にフォールバックし、
+    // 休業日 UI を出さない / 通常打刻ボタンを残す (後方互換)。
+    it('today.dateISO 未指定なら休業日扱いにならず通常打刻ボタンが押せる', () => {
+      const t: TodayCard = { mode: 'office', band: 'full', dayLabel: '今' };
+      render(<CheckInScreen today={t} state="before" />);
+      expect(
+        screen.queryByText(/本日は事務所休業日のため打刻できません/),
+      ).not.toBeInTheDocument();
+      const btn = screen.getByRole('button', { name: /通所打刻/ });
+      expect(btn).not.toBeDisabled();
+    });
+
+    // QA 追加: 「自宅で過ごした」を選んだあと「外出した」を押すと、選択が上書きされ
+    // 「(記録済み)」が引き続き 1 つだけ表示される (1 日 1 つの運用 / 行き止まりにしない)。
+    it('別の活動ボタンを連続して押しても画面が崩れず、最後に押した値が onClosedDayActivity に渡る', async () => {
+      const user = userEvent.setup();
+      const onClosedDayActivity = vi.fn();
+      const closedSat: TodayCard = {
+        mode: 'off',
+        band: 'full',
+        dayLabel: '土',
+        dateISO: '2026-05-30',
+      };
+      render(
+        <CheckInScreen
+          today={closedSat}
+          state="before"
+          closedDayActivity="home_rest"
+          onClosedDayActivity={onClosedDayActivity}
+        />,
+      );
+      await user.click(screen.getByRole('button', { name: '外出した' }));
+      expect(onClosedDayActivity).toHaveBeenLastCalledWith('outing');
+      // 記録済み表示は最初の closedDayActivity prop に基づき表示されている (親が再描画する想定)
+      expect(screen.getByText(/記録済み/)).toBeInTheDocument();
+    });
+  });
+
+  // ── バグ② 修正: 打刻画面ヘッダーの月日動的化 ─────────────
+  describe('ヘッダー日付の動的化 (バグ②)', () => {
+    it('today.dateISO を渡すと「N月D日(曜) · 打刻」が動的に出る', () => {
+      const t: TodayCard = {
+        mode: 'office',
+        band: 'full',
+        dayLabel: '月',
+        dateISO: '2026-05-25',
+      };
+      render(<CheckInScreen today={t} state="before" />);
+      expect(screen.getByText('5月25日(月) · 打刻')).toBeInTheDocument();
+    });
+
+    it('旧ハードコード文言 (5月2日(土)) は表示されない', () => {
+      const t: TodayCard = {
+        mode: 'office',
+        band: 'full',
+        dayLabel: '月',
+        dateISO: '2026-05-25',
+      };
+      render(<CheckInScreen today={t} state="before" />);
+      expect(screen.queryByText(/5月2日\(土\)/)).not.toBeInTheDocument();
+    });
+  });
 });
 
 // T9: 例外打刻の永続化を App 全体で確認する結合テスト。
 //   - 休みの日に「打刻に進む」→「通所打刻（いま）」で
 //     getAttendance(date) が plannedMode='off' / actualMode='office' のレコードを返す。
 //   - 打刻後に「お休みに戻す」を押しても AttendanceMonthlyRecord は消えない。
+//
+// Sprint 2026-05-24 / バグ①: 土日 + 最終金曜は「事務所休業日」として打刻不可になった。
+// このテストでは「事務所休業日ではないが、ユーザのスケジュール上は休みの日」(= 平日に
+// 個人設定で off を入れた日) を例外打刻のシナリオとして使う。月曜のスケジュールを
+// off に書き換えた状態で、月曜の例外打刻が成立することを確認する。
 describe('例外打刻フローの永続化 (T6/T7)', () => {
-  it('お休みの日に「打刻に進む」→「通所打刻（いま）」で planned=off / actual=office のレコードが残る', async () => {
+  it('スケジュール off の平日に「やっぱり通所する」→「通所打刻（いま）」で planned=off / actual=office のレコードが残る', async () => {
     const { default: App } = await import('../App');
     const { getAttendance } = await import('../data/store');
 
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-05-30T10:00:00')); // 土曜 = off
+    // 2026-05-25 (月) は通常 office だが、ユーザ設定で月曜を off に上書きする
+    vi.setSystemTime(new Date('2026-05-25T10:00:00'));
     const user = userEvent.setup();
 
     localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+    // schedule[0] (月曜) を off に差し替えて、平日でも「お休み」UI が出るようにする
+    localStorage.setItem(
+      'seed.app.state.v1',
+      JSON.stringify({
+        nickname: 'はる',
+        schedule: {
+          0: { mode: 'off', band: 'full' },
+          1: { mode: 'office', band: 'full' },
+          2: { mode: 'home', band: 'am' },
+          3: { mode: 'office', band: 'full' },
+          4: { mode: 'office', band: 'pm' },
+          5: { mode: 'off', band: 'full' },
+          6: { mode: 'off', band: 'full' },
+        },
+      }),
+    );
     render(<App />);
 
     // ホーム → ATTENDANCE タップで CheckIn 画面へ
     await user.click(screen.getByText('ATTENDANCE'));
 
-    // 休みの2択 → 「やっぱり通所する」
+    // 休みの2択 → 「やっぱり通所する」 (月曜は事務所休業日ではないので押下可能)
     await user.click(screen.getByRole('button', { name: 'やっぱり通所する' }));
     // 通所打刻
     await user.click(screen.getByRole('button', { name: /通所打刻/ }));
 
-    const rec = getAttendance('2026-05-30');
+    const rec = getAttendance('2026-05-25');
     expect(rec).toBeDefined();
     expect(rec?.plannedMode).toBe('off');
     expect(rec?.actualMode).toBe('office');
 
     // 打刻後に「お休みに戻す」相当の操作 (checkedIn なのでフッターには出ない)
     // → 仕様: AttendanceMonthlyRecord は消えない (明示削除のみ原則)
-    const before = getAttendance('2026-05-30');
+    const before = getAttendance('2026-05-25');
     // 念のためもう一度同じ日付の record が消えていないことを確認する。
     expect(before).toEqual(rec);
 

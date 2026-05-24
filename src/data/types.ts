@@ -60,7 +60,24 @@ export interface TodayCard {
   dayLabel: string;
   checkInTime?: string;
   checkOutTime?: string;
+  /**
+   * 当日の ISO 日付 (YYYY-MM-DD)。
+   * バグ②(打刻画面の月日が固定文言になっていた問題)修正のために追加。
+   * 後方互換のため optional。
+   */
+  dateISO?: string;
 }
+
+/**
+ * 事務所休業日に保存する「軽い記録」(Sprint 2026-05-24 / 案 X)。
+ *  - home_rest: 自宅で過ごした
+ *  - outing:    外出した
+ *  - medical:   通院した
+ *
+ * 通常打刻 (AttendanceMonthlyRecord) とは別の用途のため、ActivityFlag は流用しない。
+ * 端末ローカル限定 (Sheets / CSV エクスポートには載せない)。
+ */
+export type ClosedDayActivity = 'home_rest' | 'outing' | 'medical';
 
 export type RegionId =
   | 'tokyo'

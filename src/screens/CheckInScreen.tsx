@@ -3,13 +3,25 @@ import { PALETTE, ROUNDED_FONT, CARD_SHADOW } from '../theme';
 import { PhoneShell } from '../components/PhoneShell';
 import { BackgroundLeaves } from '../components/BackgroundLeaves';
 import { BottomTabs, type TabId } from '../components/BottomTabs';
-import { BAND_LABEL, MODE_COLOR, MODE_LABEL } from '../data/attendance';
-import type { AttendanceMode, AttendanceState, TodayCard } from '../data/types';
+import {
+  BAND_LABEL,
+  MODE_COLOR,
+  MODE_LABEL,
+  isOfficeClosed,
+} from '../data/attendance';
+import type {
+  AttendanceMode,
+  AttendanceState,
+  ClosedDayActivity,
+  TodayCard,
+} from '../data/types';
 
 interface CheckInScreenProps {
   today?: TodayCard;
   state?: AttendanceState;
   nickname?: string;
+  /** 当日に保存済みの事務所休業日アクティビティ (案 X)。表示のみに使う。 */
+  closedDayActivity?: ClosedDayActivity;
   onBack?: () => void;
   onCheckIn?: () => void;
   onCheckOut?: () => void;
@@ -26,7 +38,18 @@ interface CheckInScreenProps {
    * §13.2: Sheets 既送信のぶんはここでは取り消せない (UI 側で注記)。
    */
   onDelete?: () => void;
+  /**
+   * 案 X: 事務所休業日の「軽い記録」(home_rest / outing / medical) を保存する。
+   * 親側で setClosedDayActivity + bumpStore を行う。端末ローカル限定。
+   */
+  onClosedDayActivity?: (value: ClosedDayActivity) => void;
 }
+
+const CLOSED_DAY_OPTIONS: Array<{ value: ClosedDayActivity; label: string }> = [
+  { value: 'home_rest', label: '自宅で過ごした' },
+  { value: 'outing',    label: '外出した' },
+  { value: 'medical',   label: '通院した' },
+];
 
 const TITLE_BY_STATE = {
   before: {
@@ -60,15 +83,31 @@ export function CheckInScreen({
   },
   state = 'before',
   nickname = 'はる',
+  closedDayActivity,
   onBack,
   onCheckIn,
   onCheckOut,
   onTab,
   onTimeEdit,
   onDelete,
+  onClosedDayActivity,
 }: CheckInScreenProps) {
   const [s, setS] = useState<AttendanceState>(state);
   useEffect(() => setS(state), [state]);
+
+  // バグ① 修正: 事務所休業日 (土 / 日 / 毎月最終金曜日) は打刻不可。
+  // today.dateISO が無い (旧呼び出し元) ときは判定不可なので false 扱いにし、
+  // 既存挙動を壊さない。
+  const officeClosed = today.dateISO != null && isOfficeClosed(today.dateISO);
+
+  // バグ② 修正: 旧実装はヘッダーが「5月2日(土) · 打刻」のハードコードだった。
+  // today.dateISO + today.dayLabel から動的に組み立てる。
+  // dateISO が無い場合 (テスト等) は dayLabel のみ表示にフォールバック。
+  const headerDateLabel = (() => {
+    if (!today.dateISO) return `${today.dayLabel ?? ''} · 打刻`.trim();
+    const [, m, d] = today.dateISO.split('-').map(Number);
+    return `${m}月${d}日(${today.dayLabel}) · 打刻`;
+  })();
 
   // T6: お休みの日の例外打刻。ローカル state のみ (localStorage には保存しない)。
   // 「お休みのままにする/やっぱり通所する」の2択で切り替え、画面離脱や翌日には初期状態へ戻る。
@@ -224,7 +263,7 @@ export function CheckInScreen({
             ←
           </button>
           <div style={{ fontSize: 13, color: PALETTE.inkSoft }}>
-            5月2日(土) · 打刻
+            {headerDateLabel}
           </div>
           <div style={{ width: 44 }} />
         </div>
@@ -446,6 +485,88 @@ export function CheckInScreen({
           </div>
         </div>
 
+        {/* バグ① + 案 X: 事務所休業日のメッセージ + 軽い記録ボタン。
+            打刻不可の説明と、自宅で過ごした/外出した/通院した の 3 択を提示する。
+            ここで保存する closedDayActivity は端末ローカル限定 (Sheets/CSV へは流さない)。 */}
+        {officeClosed && (
+          <div
+            style={{
+              background: PALETTE.creamSoft,
+              borderRadius: 14,
+              border: `1.5px solid ${PALETTE.sage}`,
+              padding: 12,
+              marginBottom: 12,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: PALETTE.ink,
+                lineHeight: 1.6,
+                marginBottom: 6,
+              }}
+            >
+              本日は事務所休業日のため打刻できません
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: PALETTE.inkSoft,
+                lineHeight: 1.6,
+                marginBottom: 10,
+              }}
+            >
+              よかったら、きょうのすごし方をひとつ記録しておきませんか。
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              {CLOSED_DAY_OPTIONS.map((opt) => {
+                const selected = closedDayActivity === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => onClosedDayActivity?.(opt.value)}
+                    style={{
+                      width: '100%',
+                      height: 44,
+                      border: `1.5px solid ${
+                        selected ? PALETTE.sageDeep : PALETTE.sage
+                      }`,
+                      borderRadius: 12,
+                      background: selected ? PALETTE.sageDeep : '#fff',
+                      color: selected ? '#fff' : PALETTE.ink,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      fontFamily: ROUNDED_FONT,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {closedDayActivity && (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: PALETTE.sageDeep,
+                  marginTop: 8,
+                  textAlign: 'center',
+                }}
+              >
+                （記録済み）
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{ flex: 1 }} />
 
         {!isOff && (
@@ -453,18 +574,22 @@ export function CheckInScreen({
             {s === 'before' && (
               <button
                 onClick={handleCheckIn}
+                disabled={officeClosed}
+                aria-disabled={officeClosed || undefined}
                 style={{
                   width: '100%',
                   height: 60,
                   border: 'none',
                   borderRadius: 20,
-                  background: PALETTE.sageDeep,
-                  color: '#fff',
+                  background: officeClosed ? PALETTE.sageSoft : PALETTE.sageDeep,
+                  color: officeClosed ? PALETTE.inkSoft : '#fff',
                   fontSize: 16,
                   fontWeight: 700,
                   fontFamily: ROUNDED_FONT,
-                  boxShadow: '0 8px 20px rgba(127,169,130,0.32)',
-                  cursor: 'pointer',
+                  boxShadow: officeClosed
+                    ? 'none'
+                    : '0 8px 20px rgba(127,169,130,0.32)',
+                  cursor: officeClosed ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -827,20 +952,24 @@ export function CheckInScreen({
             </button>
             {/* T4-A: サブ「やっぱり通所する」 (枠線セカンダリ。effectiveMode=office に切替)
                 旧文言「打刻に進む」は通所への決断を促す印象が強かったため、休みに戻す
-                余地を残す文言に置換 (PM§T4 B案)。 */}
+                余地を残す文言に置換 (PM§T4 B案)。
+                バグ① 修正: 事務所休業日は本ボタンも disabled にする (打刻不可)。 */}
             <button
               onClick={() => setEffectiveMode('office')}
+              disabled={officeClosed}
+              aria-disabled={officeClosed || undefined}
               style={{
                 width: '100%',
                 height: 48,
                 border: `1.5px solid ${PALETTE.sage}`,
                 borderRadius: 16,
                 background: '#fff',
-                color: PALETTE.sageDeep,
+                color: officeClosed ? PALETTE.inkSoft : PALETTE.sageDeep,
                 fontSize: 13,
                 fontWeight: 700,
                 fontFamily: ROUNDED_FONT,
-                cursor: 'pointer',
+                cursor: officeClosed ? 'not-allowed' : 'pointer',
+                opacity: officeClosed ? 0.7 : 1,
               }}
             >
               やっぱり通所する

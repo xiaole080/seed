@@ -9,6 +9,7 @@ import { loadJson, saveJson } from '../storage';
 import type {
   AttendanceMode,
   AttendanceMonthlyRecord,
+  ClosedDayActivity,
   ConditionFlag,
   ActivityFlag,
   MealStatus,
@@ -28,6 +29,15 @@ const DAILY_KEY      = 'seed.daily.v1';
 const ATTENDANCE_KEY = 'seed.attendance.v1';
 /** ケア画面のローカル目標保存キー。T2 で追加。 */
 export const CARE_GOALS_KEY = 'seed.care.goals.v1';
+/** まいにちのリズム本体。Routine[]。schemaVersion 0.3.0 で追加。 */
+export const ROUTINES_KEY = 'seed.routines.v1';
+/** ルーティンの日別ログ (done|rest)。schemaVersion 0.3.0 で追加。 */
+export const ROUTINE_LOGS_KEY = 'seed.routine.logs.v1';
+/** 今日だけタスク。OneOffTask[]。schemaVersion 0.3.0 で追加。 */
+export const ONEOFF_TASKS_KEY = 'seed.tasks.oneoff.v1';
+/** 「まいにちのリズム」初回お知らせバナーを dismiss したかどうか。 */
+export const NOTICE_ROUTINES_DISMISSED_KEY =
+  'seed.notice.routines.dismissed.v1';
 
 // ── DailyRecord (端末専用の保存形) ────────────────────────────
 // 仕様 §5.1 DailyRecord に対応。MissingnessFlags も同梱して
@@ -87,6 +97,14 @@ export interface StoredDailyRecord {
    * schemaVersion 0.1.0 で追加。既存データはマイグレーションで補完される。
    */
   targetDateType?: 'today' | 'yesterday';
+  /**
+   * 事務所休業日の「軽い記録」(Sprint 2026-05-24 / 案 X)。
+   *  - 'home_rest' / 'outing' / 'medical' のいずれか 1 つ (上書き保存)。
+   *  - 端末ローカル限定。Sheets / CSV エクスポートには含めない。
+   *  - 通常打刻 (AttendanceMonthlyRecord) と同日に併存させない運用は
+   *    呼び出し側 (CheckInScreen) が休業日判定で担保する。
+   */
+  closedDayActivity?: ClosedDayActivity;
 }
 
 // ── DailyRecord API ───────────────────────────────────────────
@@ -138,6 +156,14 @@ function normalizeStored(raw: LegacyDaily, dateKey: string): StoredDailyRecord {
       ? raw.targetDateType
       : undefined;
 
+  // closedDayActivity (案 X) も同様に型ガード。想定外値は undefined に。
+  const closedDayActivity: StoredDailyRecord['closedDayActivity'] =
+    raw.closedDayActivity === 'home_rest' ||
+    raw.closedDayActivity === 'outing' ||
+    raw.closedDayActivity === 'medical'
+      ? raw.closedDayActivity
+      : undefined;
+
   return {
     localRecordId: raw.localRecordId ?? `daily_${dateKey}_legacy`,
     date: raw.date ?? dateKey,
@@ -155,6 +181,7 @@ function normalizeStored(raw: LegacyDaily, dateKey: string): StoredDailyRecord {
     updatedAt: raw.updatedAt ?? new Date(0).toISOString(),
     edited: raw.edited,
     targetDateType,
+    closedDayActivity,
   };
 }
 
@@ -186,6 +213,55 @@ export function listDailyRecords(): StoredDailyRecord[] {
   return Object.values(readDailies()).sort((a, b) =>
     a.date < b.date ? -1 : 1,
   );
+}
+
+/**
+ * 事務所休業日の「軽い記録」(案 X) を保存する。
+ *  - 既存の DailyRecord があればその上に closedDayActivity を additive で乗せる。
+ *  - 無ければ最小限の DailyRecord (mood は便宜上 3 = ふつう) を作って保存する。
+ *  - 端末ローカル限定。外部送信はしない (Sheets / CSV から除外)。
+ *
+ * 「1 日 1 つだけ・上書き保存」の運用に合わせ、同日に再度呼ぶと最新値で
+ * closedDayActivity フィールドだけが差し替わる。
+ */
+export function setClosedDayActivity(
+  dateISO: string,
+  value: ClosedDayActivity,
+): void {
+  const map = readDailies();
+  const existing = map[dateISO];
+  const now = new Date().toISOString();
+  if (existing) {
+    map[dateISO] = {
+      ...existing,
+      closedDayActivity: value,
+      updatedAt: now,
+    };
+  } else {
+    const missingness: MissingnessFlags = {
+      noRecord: false,
+      skippedMood: true,
+      skippedPrimaryInfluence: true,
+      skippedSleep: true,
+      skippedMeal: true,
+      skippedExercise: true,
+      skippedCondition: true,
+      skippedMedication: true,
+      skippedAttendance: false,
+      skippedNote: true,
+    };
+    map[dateISO] = {
+      localRecordId: `daily_${dateISO}_closed`,
+      date: dateISO,
+      mood: 3,
+      primaryInfluence: [],
+      missingness,
+      createdAt: now,
+      updatedAt: now,
+      closedDayActivity: value,
+    };
+  }
+  writeDailies(map);
 }
 
 /** 記録があったユニーク日数 (同じ日に何度 submit してもカウント1) */
@@ -325,6 +401,11 @@ export function deleteAllLocalData(): void {
       'seed.schema.version',
       // schemaVersion 0.2.0 で追加: 天気キャッシュ (座標 + snapshot)
       'seed.weather.v1',
+      // schemaVersion 0.3.0 で追加: まいにちのリズム / 今日だけタスク / お知らせ
+      ROUTINES_KEY,
+      ROUTINE_LOGS_KEY,
+      ONEOFF_TASKS_KEY,
+      NOTICE_ROUTINES_DISMISSED_KEY,
     ];
     for (const k of keys) localStorage.removeItem(k);
   } catch {

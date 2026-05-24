@@ -46,3 +46,27 @@ export const DEFAULT_SCHEDULE: Schedule = {
 export function isExceptionalCheckIn(rec: AttendanceMonthlyRecord): boolean {
   return rec.plannedMode === 'off' && rec.actualMode != null;
 }
+
+/**
+ * 事務所の休業日判定 (Sprint 2026-05-24 / バグ修正① 確定方針)。
+ *  - 土曜・日曜 → 常に休業
+ *  - 毎月の「最終金曜日」→ 休業
+ *  - 上記以外 → 営業日
+ *
+ * 「最終金曜日」は「その金曜の 7 日後が翌月かどうか」で判定する
+ * (= その月に同じ金曜は次がない)。祝日特別扱いはしない (一律「事務所休業日」表示)。
+ *
+ * dateISO は YYYY-MM-DD 形式。タイムゾーンずれを避けるため、UTC ではなく
+ * ローカル日付として new Date(`${dateISO}T00:00:00`) で解釈する。
+ */
+export function isOfficeClosed(dateISO: string): boolean {
+  const d = new Date(`${dateISO}T00:00:00`);
+  const dow = d.getDay(); // 0=Sun, 5=Fri, 6=Sat
+  if (dow === 0 || dow === 6) return true;
+  if (dow === 5) {
+    const next = new Date(d);
+    next.setDate(d.getDate() + 7);
+    return next.getMonth() !== d.getMonth();
+  }
+  return false;
+}

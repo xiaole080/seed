@@ -69,8 +69,8 @@ describe('App — マイグレーション後の初期表示 (T17 / Phase 2a)', 
     expect(
       screen.getByRole('button', { name: /今日の記録を修正する/ }),
     ).toBeInTheDocument();
-    // schemaVersion がマイグレーションで更新されている (0.2.0 まで進む)
-    expect(localStorage.getItem('seed.schema.version')).toBe('"0.2.0"');
+    // schemaVersion がマイグレーションで更新されている (0.3.0 まで進む)
+    expect(localStorage.getItem('seed.schema.version')).toBe('"0.3.0"');
     // 既存 note が消えていない
     const after = JSON.parse(localStorage.getItem('seed.daily.v1') ?? '{}');
     expect(after[today].note).toBe('マイグレ前のメモ');
@@ -216,6 +216,96 @@ describe('App — 日付跨ぎ時の AttendanceCard 切り替え (T1-B / SPRINT 
     ).not.toBeInTheDocument();
     // 前日の実打刻時刻も今日のレンジには出ていない
     expect(screen.queryByText(/\(09:42 〜 15:08\)/)).not.toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+});
+
+// バグ③ 修正 (Sprint 2026-05-24): App.tsx の totalDays / streak の useMemo deps に
+//   dateKey が無く、アプリを開きっぱなしで日付が跨いだあとケア画面を開いても
+//   前日基準の値で固定される問題への回帰テスト。日付跨ぎ後に再計算されることを
+//   ケア画面の totalDays 表示 (鳥バー) で確認する。
+describe('App — 日付跨ぎ時の totalDays / streak 再計算 (バグ③)', () => {
+  it('日付跨ぎ後、新しい今日の記録が totalDays に反映される', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    // 2026-05-25 (月) 23:59 で開始
+    vi.setSystemTime(new Date('2026-05-25T23:59:00'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    // 既存記録を 1 件 (5/25 = 今日) 仕込んでおく
+    localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+    localStorage.setItem(
+      'seed.daily.v1',
+      JSON.stringify({
+        '2026-05-25': {
+          localRecordId: 'r_25',
+          date: '2026-05-25',
+          mood: 3,
+          primaryInfluence: [],
+          missingness: {
+            noRecord: false,
+            skippedMood: false,
+            skippedPrimaryInfluence: true,
+            skippedSleep: true,
+            skippedMeal: true,
+            skippedExercise: true,
+            skippedCondition: true,
+            skippedMedication: true,
+            skippedAttendance: false,
+            skippedNote: true,
+          },
+          createdAt: '2026-05-25T10:00:00.000Z',
+          updatedAt: '2026-05-25T10:00:00.000Z',
+        },
+      }),
+    );
+
+    render(<App />);
+
+    // ケア画面 (鳥バー) は「ケア」タブから開く
+    await user.click(screen.getByRole('button', { name: /ケア/ }));
+    // totalDays = 1 で「1日」表示が出る
+    expect(screen.getAllByText(/1\s*日/).length).toBeGreaterThan(0);
+
+    // 翌日 (5/26 火) 0:00:30 に進めて 60 秒間隔の check() を発火
+    vi.setSystemTime(new Date('2026-05-26T00:00:30'));
+    vi.advanceTimersByTime(60_000);
+
+    // 5/26 の記録を localStorage に直接追加 (=2 日記録)
+    const map = JSON.parse(localStorage.getItem('seed.daily.v1') ?? '{}');
+    map['2026-05-26'] = {
+      localRecordId: 'r_26',
+      date: '2026-05-26',
+      mood: 3,
+      primaryInfluence: [],
+      missingness: {
+        noRecord: false,
+        skippedMood: false,
+        skippedPrimaryInfluence: true,
+        skippedSleep: true,
+        skippedMeal: true,
+        skippedExercise: true,
+        skippedCondition: true,
+        skippedMedication: true,
+        skippedAttendance: false,
+        skippedNote: true,
+      },
+      createdAt: '2026-05-26T10:00:00.000Z',
+      updatedAt: '2026-05-26T10:00:00.000Z',
+    };
+    localStorage.setItem('seed.daily.v1', JSON.stringify(map));
+
+    // もう一度 check() を発火させて dateKey 更新 → useMemo 再計算
+    vi.advanceTimersByTime(60_000);
+
+    // タブ切替で再描画。totalDays が 2 件 (= 5/25 + 5/26) に上がっていること。
+    // ※ useMemo deps に dateKey が無いと、ここで「1日」のままになる回帰。
+    // ケア画面の totalDays は「N日」「Day N」など複数箇所に出るので、
+    // 「2」を含む表示が少なくとも 1 つあることで再計算を確認する。
+    // ホーム→ケアと往復してから ケア に戻る
+    await user.click(screen.getByRole('button', { name: /ホーム/ }));
+    await user.click(screen.getByRole('button', { name: /ケア/ }));
+    expect(screen.getAllByText(/2\s*日/).length).toBeGreaterThan(0);
 
     vi.useRealTimers();
   });

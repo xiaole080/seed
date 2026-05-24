@@ -91,7 +91,9 @@ export function AttendanceSetupScreen({
           gap: 10,
         }}
       >
-        {DAYS.map((d, i) => {
+        {/* 土曜・日曜は事務所休業日のため選択肢から外す (isOfficeClosed と整合)。
+            schedule[5]/[6] (土/日) は initial=DEFAULT_SCHEDULE のまま off で保持される。 */}
+        {DAYS.slice(0, 5).map((d, i) => {
           const s = schedule[i] || { mode: 'off' as AttendanceMode, band: 'full' as TimeBand };
           const c = MODE_COLOR[s.mode];
           return (
