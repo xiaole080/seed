@@ -89,6 +89,237 @@ describe('ConsentScreen', () => {
     const next = onAccept.mock.calls[0][0] as ConsentState;
     expect(next.attendanceBackupConsent).toBe('accepted');
   });
+
+  it('「このアプリの目的」セクションを表示する', () => {
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />);
+    expect(screen.getByText('このアプリの目的')).toBeInTheDocument();
+  });
+
+  it('「使用できる範囲」セクションと免責文言を表示する', () => {
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />);
+    expect(screen.getByText('使用できる範囲')).toBeInTheDocument();
+    expect(
+      screen.getByText(/みんなで磨こう！アプリ作成講座/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/診療・治療・支援方針の決定の根拠としては使用できません/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/開発者は責任を負えません/),
+    ).toBeInTheDocument();
+  });
+
+  it('「どこに のこるか」に Open-Meteo と小数第2位の説明を含む', () => {
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />);
+    // 「どこに のこるか」見出しを含むカード内に天気送信明示行が存在することを確認
+    const heading = screen.getByText('どこに のこるか');
+    const card = heading.parentElement;
+    expect(card).not.toBeNull();
+    const cardText = card?.textContent ?? '';
+    expect(cardText).toContain('Open-Meteo');
+    expect(cardText).toContain('小数第2位');
+  });
+
+  // ── QA 追加: 11 セクション順序の保証 ──
+  // 仕様の順序通りに見出しが並んでいることを DOM 上の位置で確認する。
+  // 「はじめに おねがいごとです」見出しは Section ではなくページ先頭にあるので
+  // ここでは Section title 9 + チェックボックス 3 + ボタンの順を主に検証する。
+  it('セクション見出しが仕様順 (このアプリの目的 → 使用できる範囲 → どこに のこるか → 入力は任意です → やめたくなったら → つらいときは) で並ぶ', () => {
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />);
+    const titles = [
+      'このアプリの目的',
+      '使用できる範囲',
+      'どこに のこるか',
+      '入力は任意です',
+      'やめたくなったら',
+      'つらいときは',
+    ];
+    const nodes = titles.map((t) => screen.getByText(t));
+    // すべて DOCUMENT_POSITION_FOLLOWING (4) の関係になっている
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const rel = nodes[i].compareDocumentPosition(nodes[i + 1]);
+      expect(rel & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it('天気チェック → 自動バックアップチェック → 同意チェック → 「同意して はじめる」の順に並ぶ', () => {
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />);
+    const weather = screen.getByRole('checkbox', {
+      name: /天気を表示する/,
+    });
+    const backup = screen.getByRole('checkbox', {
+      name: /自動バックアップに同意/,
+    });
+    const read = screen.getByRole('checkbox', { name: /内容を読みました/ });
+    const start = screen.getByRole('button', { name: /同意して/ });
+    const order = [weather, backup, read, start];
+    for (let i = 0; i < order.length - 1; i++) {
+      const rel = order[i].compareDocumentPosition(order[i + 1]);
+      expect(rel & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  // ── QA 追加: 3 同意項目の独立動作 ──
+  it('初期状態ですべてのチェックボックスが OFF (checked=false)', () => {
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />);
+    const weather = screen.getByRole('checkbox', {
+      name: /天気を表示する/,
+    }) as HTMLInputElement;
+    const backup = screen.getByRole('checkbox', {
+      name: /自動バックアップに同意/,
+    }) as HTMLInputElement;
+    const read = screen.getByRole('checkbox', {
+      name: /内容を読みました/,
+    }) as HTMLInputElement;
+    expect(weather.checked).toBe(false);
+    expect(backup.checked).toBe(false);
+    expect(read.checked).toBe(false);
+  });
+
+  it('必須 OFF + 任意 2 つ ON でも「はじめる」は disabled', async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn();
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={onAccept} />);
+
+    await user.click(screen.getByRole('checkbox', { name: /天気を表示する/ }));
+    await user.click(
+      screen.getByRole('checkbox', { name: /自動バックアップに同意/ }),
+    );
+    const start = screen.getByRole('button', { name: /同意して/ });
+    expect(start).toBeDisabled();
+    // クリックしても onAccept は呼ばれない
+    await user.click(start);
+    expect(onAccept).not.toHaveBeenCalled();
+  });
+
+  it('必須 ON + 任意 2 つ OFF で「はじめる」有効になり、weather/backup は declined で確定', async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn();
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={onAccept} />);
+
+    await user.click(
+      screen.getByRole('checkbox', { name: /内容を読みました/ }),
+    );
+    const start = screen.getByRole('button', { name: /同意して/ });
+    expect(start).not.toBeDisabled();
+    await user.click(start);
+
+    expect(onAccept).toHaveBeenCalledOnce();
+    const next = onAccept.mock.calls[0][0] as ConsentState;
+    expect(next.appTermsAccepted).toBe(true);
+    expect(next.attendanceBackupConsent).toBe('declined');
+    expect(next.weatherApiConsent).toBe('declined');
+  });
+
+  it('3 つすべて ON で submit → backup/weather=accepted, appTermsAccepted=true', async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn();
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={onAccept} />);
+
+    await user.click(screen.getByRole('checkbox', { name: /天気を表示する/ }));
+    await user.click(
+      screen.getByRole('checkbox', { name: /自動バックアップに同意/ }),
+    );
+    await user.click(
+      screen.getByRole('checkbox', { name: /内容を読みました/ }),
+    );
+    await user.click(screen.getByRole('button', { name: /同意して/ }));
+
+    expect(onAccept).toHaveBeenCalledOnce();
+    const next = onAccept.mock.calls[0][0] as ConsentState;
+    expect(next.appTermsAccepted).toBe(true);
+    expect(next.attendanceBackupConsent).toBe('accepted');
+    expect(next.weatherApiConsent).toBe('accepted');
+    // researchConsent は出さない設計なので入力値を保持
+    expect(next.researchConsent).toBe('notAsked');
+    // 本人操作の CSV 出力は常に許可
+    expect(next.attendanceExportConsent).toBe('accepted');
+  });
+
+  it('天気のみ ON で submit → weatherApiConsent=accepted, backup=declined (独立動作)', async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn();
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={onAccept} />);
+
+    await user.click(screen.getByRole('checkbox', { name: /天気を表示する/ }));
+    await user.click(
+      screen.getByRole('checkbox', { name: /内容を読みました/ }),
+    );
+    await user.click(screen.getByRole('button', { name: /同意して/ }));
+
+    const next = onAccept.mock.calls[0][0] as ConsentState;
+    expect(next.weatherApiConsent).toBe('accepted');
+    expect(next.attendanceBackupConsent).toBe('declined');
+  });
+
+  it('consent.consentVersion (v1.1) が画面下部に表示される', () => {
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />);
+    expect(screen.getByText(/同意のバージョン:\s*v1\.1/)).toBeInTheDocument();
+  });
+
+  it('「このアプリの目的」セクションに 🌱 と 🚫 の 2 行 (ふりかえる / 医療診断しない) が含まれる', () => {
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />);
+    const heading = screen.getByText('このアプリの目的');
+    const card = heading.parentElement;
+    const t = card?.textContent ?? '';
+    expect(t).toContain('🌱');
+    expect(t).toContain('🚫');
+    expect(t).toContain('ふりかえる');
+    expect(t).toMatch(/医療的な診断/);
+  });
+
+  it('「使用できる範囲」セクションに 📘 と ⚠️ の 2 行 (講座学習 / 別目的では責任を負わない) が含まれる', () => {
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />);
+    const heading = screen.getByText('使用できる範囲');
+    const card = heading.parentElement;
+    const t = card?.textContent ?? '';
+    expect(t).toContain('📘');
+    expect(t).toContain('⚠️');
+    expect(t).toMatch(/学習・体験/);
+    expect(t).toMatch(/本来の目的以外で生じた不利益/);
+  });
+
+  it('「どこに のこるか」に 🌦️ アイコン行があり、体調・自由記述・服薬は送らない旨を明示', () => {
+    render(<ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />);
+    const heading = screen.getByText('どこに のこるか');
+    const card = heading.parentElement;
+    const t = card?.textContent ?? '';
+    expect(t).toContain('🌦️');
+    expect(t).toMatch(/体調・自由記述・服薬は送りません/);
+  });
+
+  // ── QA 追加: 既存ユーザの再同意なし方針の確認 ──
+  // ConsentScreen 単体ではフェーズ遷移はしないが、consent.appTermsAccepted=true の
+  // ユーザに対して画面が表示されること自体は許可される (再表示用)。
+  // 「再同意画面が出ない」のは App.tsx 側 (phase=app 復元) で保証する責務。
+  // ここでは consent.consentVersion がプロパティとしてそのまま表示されることだけ確認。
+  it('appTermsAccepted=true + consentVersion=v1.1 を渡しても落ちず、バージョン表示が変わらない', () => {
+    const next: ConsentState = { ...BASE_CONSENT, appTermsAccepted: true };
+    render(<ConsentScreen consent={next} onAccept={() => {}} />);
+    expect(screen.getByText(/v1\.1/)).toBeInTheDocument();
+  });
+
+  // ── QA 追加: 禁止文言走査 ──
+  // §12.1/§12.2/§9.7 で禁止されている可能性の高い表現が混入していないこと。
+  // 「医療診断」「治療」「相談に応じます」「必ず」「絶対」「症状」など、
+  // 医療を装う / 命令的な強い表現が新規セクションに紛れ込まないことを確認。
+  it('医療を装う / 命令的な強い文言が ConsentScreen に含まれない', () => {
+    const { container } = render(
+      <ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />,
+    );
+    const text = container.textContent ?? '';
+    // 「医療的な診断はしません」のような「しません」を含む文は許容するため、
+    // 禁止語は単独/肯定形に限定。
+    expect(text).not.toMatch(/必ず.*してください/);
+    expect(text).not.toMatch(/絶対に/);
+    expect(text).not.toContain('治療します');
+    expect(text).not.toContain('診断します');
+    expect(text).not.toMatch(/症状.*治/);
+    // 「責任を負いません」は仕様で明示されている免責文言なので残す。
+    // ただし「責任を取れません」「自己責任で」のような威圧表現は混入禁止。
+    expect(text).not.toContain('自己責任で');
+    expect(text).not.toContain('責任を取れません');
+  });
 });
 
 describe('MoodLogScreen', () => {

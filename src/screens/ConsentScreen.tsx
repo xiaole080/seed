@@ -76,6 +76,27 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
           </div>
         </div>
 
+        <Section title="このアプリの目的">
+          <Line icon="🌱">
+            日々のきもち・睡眠・食事・体調・通所の記録を通して、
+            自分のリズムをふりかえるためのものです。
+          </Line>
+          <Line icon="🚫">
+            医療的な診断、治療、緊急対応、支援方針の決定は行いません。
+          </Line>
+        </Section>
+
+        <Section title="使用できる範囲">
+          <Line icon="📘">
+            本アプリは「みんなで磨こう！アプリ作成講座」での
+            学習・体験を目的としています。
+          </Line>
+          <Line icon="⚠️">
+            診療・治療・支援方針の決定の根拠としては使用できません。
+            本来の目的以外で生じた不利益について、開発者は責任を負えません。
+          </Line>
+        </Section>
+
         <Section title="どこに のこるか">
           <Line icon="📱">
             きもち・睡眠・食事・体調・服薬・自由記述は
@@ -89,6 +110,10 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
             <strong>自由記述</strong>は、外には送られません。
             <br />
             個人名・施設名・第三者を特定できる情報は、なるべく書かないでください。
+          </Line>
+          <Line icon="🌦️">
+            天気を表示するときは、おおよその位置（小数第2位の緯度経度）
+            だけを Open-Meteo に送ります。体調・自由記述・服薬は送りません。
           </Line>
         </Section>
 
@@ -149,9 +174,9 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
               <strong>天気を表示する（インターネット通信）</strong>
               <br />
               <span style={{ fontSize: 11, color: PALETTE.inkSoft }}>
-                区市町村レベルの天気を表示するため、おおよその位置（小数第2位の緯度経度）
-                だけを Open-Meteo に送ります。体調や自由記述は送りません。
-                あとからオフにできます。
+                選んだ地域の天気を Open-Meteo から取り寄せます。
+                送るのは区市町村レベルのだいたいの位置だけで、
+                体調や自由記述は送りません。いつでもオフにできます。
               </span>
             </span>
           </label>
@@ -186,7 +211,7 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
               <br />
               <span style={{ fontSize: 11, color: PALETTE.inkSoft }}>
                 月末に支援員と確認しやすくするためのものです。
-                気分・体調・服薬・自由記述は含まれません。
+                気分・睡眠・食事・体調・服薬・自由記述は含まれません。
                 あとから「じぶん」で切り替えられます。
               </span>
             </span>
