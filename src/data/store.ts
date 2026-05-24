@@ -307,6 +307,8 @@ export function deleteAllLocalData(): void {
       'seed.egg',
       // schemaVersion 0.1.0 で追加: マイグレ済み状態も全削除でリセットする
       'seed.schema.version',
+      // schemaVersion 0.2.0 で追加: 天気キャッシュ (座標 + snapshot)
+      'seed.weather.v1',
     ];
     for (const k of keys) localStorage.removeItem(k);
   } catch {

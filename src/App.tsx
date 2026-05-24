@@ -25,9 +25,11 @@ import type {
   RecordPreset,
   RegionId,
   Schedule,
+  SelectedRegion,
   Stage,
   TodayCard,
 } from './data/types';
+import { REGIONS, roundCoord } from './data/regions';
 import {
   flushOutboxOnce,
   logCheckIn,
@@ -37,6 +39,8 @@ import {
   syncHistoryOnce,
 } from './api/sheets';
 import { ConsentScreen } from './screens/ConsentScreen';
+import { RegionSearchScreen } from './screens/RegionSearchScreen';
+import { clearWeatherCache } from './data/weatherCache';
 import {
   countRecordedDays,
   currentStreak,
@@ -78,7 +82,7 @@ type Phase =
   | 'setup-records'
   | 'app';
 
-type Route = TabId | 'mood' | 'reaction' | 'checkin';
+type Route = TabId | 'mood' | 'reaction' | 'checkin' | 'regionSearch';
 
 /** YYYY-MM-DD で今日からの offset 日を返す (offset=-1 は昨日) */
 function isoDaysOffset(offset: number): string {
@@ -94,7 +98,12 @@ interface AppState {
   recordIds: string[];
   /** じぶん画面で追加されたカスタム記録項目 (永続化対象) */
   customRecordItems: RecordPreset[];
-  region: RegionId;
+  /**
+   * 選択中の地域。schemaVersion 0.2.0 で `RegionId` から `SelectedRegion` に拡張。
+   * 永続化されたデータが string (旧 RegionId) の場合は normalizeRegion で
+   * `{ kind: 'preset', presetId }` に正規化する。
+   */
+  region: SelectedRegion;
   manualStage: Stage;
   streak: number;
   totalDays: number;
@@ -113,7 +122,7 @@ const INITIAL_STATE: AppState = {
   schedule: DEFAULT_SCHEDULE,
   recordIds: DEFAULT_RECORD_IDS,
   customRecordItems: [],
-  region: 'tokyo',
+  region: { kind: 'preset', presetId: 'tokyo' },
   manualStage: 0,
   streak: 0,
   totalDays: 0,
@@ -136,21 +145,78 @@ const DEFAULT_CONSENT: ConsentState = {
   attendanceBackupConsent: 'notAsked',
   attendanceExportConsent: 'notAsked',
   researchConsent: 'notAsked',
-  consentVersion: 'v1.0',
+  weatherApiConsent: 'notAsked',
+  consentVersion: 'v1.1',
 };
+
+/**
+ * 旧形式 (string = RegionId) を含む region 値を SelectedRegion へ正規化する。
+ * schemaVersion 0.2.0 で `state.region` を SelectedRegion に切り替えたため、
+ * localStorage に残っている旧データを読み取る際の安全弁。
+ */
+function normalizeRegion(raw: unknown): SelectedRegion {
+  if (typeof raw === 'string') {
+    if (raw in REGIONS) {
+      return { kind: 'preset', presetId: raw as RegionId };
+    }
+    return { kind: 'preset', presetId: 'tokyo' };
+  }
+  if (raw && typeof raw === 'object') {
+    const r = raw as Partial<SelectedRegion> & {
+      kind?: string;
+      presetId?: string;
+      name?: string;
+      lat?: number;
+      lon?: number;
+    };
+    if (r.kind === 'preset' && typeof r.presetId === 'string' && r.presetId in REGIONS) {
+      return { kind: 'preset', presetId: r.presetId as RegionId };
+    }
+    if (
+      r.kind === 'custom' &&
+      typeof r.name === 'string' &&
+      typeof r.lat === 'number' &&
+      typeof r.lon === 'number'
+    ) {
+      // 読み込み時防御 (§4.2): 旧データに小数3位以降が残っていた場合の救済。
+      // 上流 (geocoding.ts / RegionSearchScreen) で丸めているが、リリース前の
+      // データを抱えた端末を保護する。
+      return {
+        kind: 'custom',
+        name: r.name,
+        lat: roundCoord(r.lat),
+        lon: roundCoord(r.lon),
+      };
+    }
+  }
+  return { kind: 'preset', presetId: 'tokyo' };
+}
 
 export default function App() {
   const [phase, setPhase] = useState<Phase>(() =>
     loadJson<Phase>(STORAGE_KEY_PHASE, 'consent'),
   );
-  const [consent, setConsent] = useState<ConsentState>(() =>
-    loadJson<ConsentState>(STORAGE_KEY_CONSENT, DEFAULT_CONSENT),
-  );
+  const [consent, setConsent] = useState<ConsentState>(() => {
+    // 旧 v1.0 ユーザの consent JSON には weatherApiConsent などの新規 field が
+    // 入っていない可能性がある。DEFAULT_CONSENT を先に展開して欠損を埋め、
+    // ロード結果で必要な field だけ上書きする。
+    // consentVersion はロード値があれば優先 (旧 'v1.0' を残し、migrations 側で 'v1.1' に上げる)。
+    const loaded = loadJson<Partial<ConsentState>>(STORAGE_KEY_CONSENT, {});
+    return { ...DEFAULT_CONSENT, ...loaded };
+  });
   const [route, setRoute] = useState<Route>('home');
-  const [state, setState] = useState<AppState>(() => ({
-    ...INITIAL_STATE,
-    ...loadJson<Partial<AppState>>(STORAGE_KEY_STATE, {}),
-  }));
+  const [state, setState] = useState<AppState>(() => {
+    const loaded = loadJson<Partial<AppState> & { region?: unknown }>(
+      STORAGE_KEY_STATE,
+      {},
+    );
+    return {
+      ...INITIAL_STATE,
+      ...loaded,
+      // 旧データ (string の RegionId) を SelectedRegion へ正規化する。
+      region: normalizeRegion(loaded.region ?? INITIAL_STATE.region),
+    };
+  });
   /** mood 記録の対象日 (YYYY-MM-DD)。home から遷移する時にセット。 */
   const [moodTargetDate, setMoodTargetDate] = useState<string>(() => todayISO());
   /** mood 記録の対象日タイプ。'today'/'yesterday' どちらから来たか保持。 */
@@ -402,6 +468,22 @@ export default function App() {
         onHome={() => setRoute('home')}
       />
     );
+  } else if (route === 'regionSearch') {
+    inner = (
+      <RegionSearchScreen
+        consent={consent.weatherApiConsent}
+        onPick={(r) => {
+          update({ region: r });
+          const summary = r.kind === 'preset' ? r.presetId : 'custom';
+          logSettings({ field: 'region', value: summary }, state.nickname);
+          // 別地域に切り替えたら以前の天気キャッシュは捨てる (座標一致しないため
+          // どのみち使われないが、明示的にクリア)。
+          clearWeatherCache();
+          setRoute('me');
+        }}
+        onBack={() => setRoute('me')}
+      />
+    );
   } else if (route === 'checkin') {
     inner = (
       <CheckInScreen
@@ -425,6 +507,7 @@ export default function App() {
         today={today}
         attendanceState={state.attendanceState}
         region={state.region}
+        weatherConsent={consent.weatherApiConsent}
         species={state.eggSpecies}
         eggName={state.eggName}
         showWhisper={state.showWhisper}
@@ -442,6 +525,7 @@ export default function App() {
           setRoute('mood');
         }}
         onOpenCheckIn={() => setRoute('checkin')}
+        onEnableWeather={() => setRoute('me')}
       />
     );
   } else if (route === 'log') {
@@ -466,6 +550,7 @@ export default function App() {
         nickname={state.nickname}
         schedule={state.schedule}
         region={state.region}
+        weatherConsent={consent.weatherApiConsent}
         recordIds={state.recordIds}
         customRecordItems={state.customRecordItems}
         onTab={(t) => setRoute(t)}
@@ -475,8 +560,21 @@ export default function App() {
         }}
         onChangeRegion={(r) => {
           update({ region: r });
-          logSettings({ field: 'region', value: r }, state.nickname);
+          // Sheets には地域の "種別" だけを送る (custom の name は送らない)。
+          // custom の中身 (具体的な地名) はローカル限定として扱う。
+          const summary =
+            r.kind === 'preset' ? r.presetId : 'custom';
+          logSettings({ field: 'region', value: summary }, state.nickname);
         }}
+        onChangeWeatherConsent={(next) => {
+          setConsent({ ...consent, weatherApiConsent: next });
+          // 同意状態の変更は Sheets に値 (accepted/declined) のみ送る。
+          logSettings(
+            { field: 'weatherApiConsent', value: next },
+            state.nickname,
+          );
+        }}
+        onOpenRegionSearch={() => setRoute('regionSearch')}
         onChangeRecordItems={(ids, customs) => {
           // T5: ON/OFF 切替を state へ反映。state は localStorage に永続化される。
           // これでリロードなしで MoodLog / History にも反映される。

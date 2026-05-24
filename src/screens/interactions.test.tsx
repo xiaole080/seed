@@ -16,7 +16,8 @@ const BASE_CONSENT: ConsentState = {
   attendanceBackupConsent: 'notAsked',
   attendanceExportConsent: 'notAsked',
   researchConsent: 'notAsked',
-  consentVersion: 'v1.0',
+  weatherApiConsent: 'notAsked',
+  consentVersion: 'v1.1',
 };
 
 describe('LoginScreen', () => {

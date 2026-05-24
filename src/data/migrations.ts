@@ -1,21 +1,29 @@
 // localStorage スキーマの単方向マイグレーション。
 //
-// 仕様 (Sprint 2026-05-23 Phase 2a):
+// 仕様 (Sprint 2026-05-23 Phase 2a / 2026-05-24):
 //  - 起動時に1度だけ `runMigrations()` を呼ぶ。
 //  - `seed.schema.version` を新設し、現行バージョンを保存する。
-//  - 既存データはすべて 0.0.0 扱いとし、0.1.0 へ持ち上げる。
+//  - 既存データはすべて 0.0.0 扱いとし、段階的にバージョンを上げる。
 //  - マイグレーションは「既存データを壊さない」最小手で、未知の version は警告のみ。
 //
 // 0.0.0 → 0.1.0 の変更点:
 //  - StoredDailyRecord.targetDateType (`today` | `yesterday`) を保存対象に追加。
-//    既存レコードは持っていないので、`date` とマイグレ実行日との差から
-//    補完するか、わからない場合は undefined を維持する (後方互換)。
+//
+// 0.1.0 → 0.2.0 の変更点 (Sprint 2026-05-24):
+//  - ConsentState に `weatherApiConsent` を追加 (既存ユーザは 'notAsked' で静かに移行)。
+//  - `consentVersion` を 'v1.0' → 'v1.1' に書き換える (再同意画面は出さない)。
 
 import { loadJson, saveJson } from '../storage';
+import type { ConsentState } from './types';
 import type { StoredDailyRecord } from './store';
 
+type DailyMap = Record<
+  string,
+  StoredDailyRecord & { targetDateType?: 'today' | 'yesterday' }
+>;
+
 /** 現行のスキーマバージョン。新しいマイグレを足したら必ず上げる。 */
-export const CURRENT_SCHEMA_VERSION = '0.1.0';
+export const CURRENT_SCHEMA_VERSION = '0.2.0';
 
 /** schemaVersion を保存する localStorage キー (新設)。 */
 export const SCHEMA_VERSION_KEY = 'seed.schema.version';
@@ -23,9 +31,11 @@ export const SCHEMA_VERSION_KEY = 'seed.schema.version';
 /** 既存 DailyRecord キー。store.ts と一致させる。 */
 const DAILY_KEY = 'seed.daily.v1';
 
+/** 既存 ConsentState キー。App.tsx と一致させる。 */
+const CONSENT_KEY = 'seed.consent.v1';
+
 /**
  * 保存済みの schemaVersion を返す。未設定なら '0.0.0'。
- * (= migrations 未導入時代に既に何かを保存しているユーザを表す)
  */
 export function getStoredSchemaVersion(): string {
   return loadJson<string>(SCHEMA_VERSION_KEY, '0.0.0');
@@ -55,16 +65,11 @@ function todayISOLocal(): string {
 /**
  * 0.0.0 → 0.1.0
  *  - 既存 DailyRecord に targetDateType を補完する。
- *    マイグレ実行日との差で 0 日 → 'today'、1 日 → 'yesterday'、それ以外は未設定。
- *    既存値がある場合はそれを尊重する。
  */
 function migrateDailyTargetDateType_0_0_0_to_0_1_0(): void {
   try {
     const today = todayISOLocal();
-    const raw = loadJson<Record<string, StoredDailyRecord & { targetDateType?: 'today' | 'yesterday' }>>(
-      DAILY_KEY,
-      {},
-    );
+    const raw = loadJson<DailyMap>(DAILY_KEY, {});
     let touched = false;
     for (const [date, rec] of Object.entries(raw)) {
       if (rec == null || typeof rec !== 'object') continue;
@@ -86,6 +91,34 @@ function migrateDailyTargetDateType_0_0_0_to_0_1_0(): void {
 }
 
 /**
+ * 0.1.0 → 0.2.0
+ *  - ConsentState に weatherApiConsent が無ければ 'notAsked' を補う。
+ *  - consentVersion を 'v1.1' に書き換える (案C: 再同意画面は出さない静かな移行)。
+ */
+function migrateConsent_0_1_0_to_0_2_0(): void {
+  try {
+    const consent = loadJson<Partial<ConsentState> | null>(CONSENT_KEY, null);
+    if (consent == null || typeof consent !== 'object') {
+      // 同意エントリがそもそも無い → 何もしない (起動時に DEFAULT_CONSENT が使われる)
+      return;
+    }
+    const next: ConsentState = {
+      appTermsAccepted: consent.appTermsAccepted ?? false,
+      attendanceBackupConsent: consent.attendanceBackupConsent ?? 'notAsked',
+      attendanceExportConsent: consent.attendanceExportConsent ?? 'notAsked',
+      researchConsent: consent.researchConsent ?? 'notAsked',
+      weatherApiConsent: consent.weatherApiConsent ?? 'notAsked',
+      consentVersion: 'v1.1',
+      consentedAt: consent.consentedAt,
+      withdrawnAt: consent.withdrawnAt,
+    };
+    saveJson(CONSENT_KEY, next);
+  } catch {
+    // 壊れたデータが混ざっていても本体起動は止めない。
+  }
+}
+
+/**
  * 起動時に1度だけ呼ぶ。失敗してもアプリ起動を止めない。
  */
 export function runMigrations(): void {
@@ -99,7 +132,6 @@ export function runMigrations(): void {
   if (version === CURRENT_SCHEMA_VERSION) return;
 
   // 想定外の version (未来のバージョンなど) は警告だけ出して終了する。
-  // ダウングレードは想定しない (データを壊すリスクがあるため)。
   if (isAheadOfCurrent(version)) {
     try {
       // eslint-disable-next-line no-console
@@ -115,13 +147,21 @@ export function runMigrations(): void {
   // 0.0.0 → 0.1.0
   if (version === '0.0.0') {
     migrateDailyTargetDateType_0_0_0_to_0_1_0();
-    setStoredSchemaVersion('0.1.0');
-    return;
+    version = '0.1.0';
+    setStoredSchemaVersion(version);
   }
 
-  // ここに到達するのは「過去に未来の version を一度書き込んでから戻した」など
-  // 想定外のケース。安全側で値だけ揃え、データには触れない。
-  setStoredSchemaVersion(CURRENT_SCHEMA_VERSION);
+  // 0.1.0 → 0.2.0
+  if (version === '0.1.0') {
+    migrateConsent_0_1_0_to_0_2_0();
+    version = '0.2.0';
+    setStoredSchemaVersion(version);
+  }
+
+  if (version !== CURRENT_SCHEMA_VERSION) {
+    // 未知の中間バージョン → 安全側で値だけ揃え、データには触れない。
+    setStoredSchemaVersion(CURRENT_SCHEMA_VERSION);
+  }
 }
 
 /** 単純な semver 比較。a が現行より新しければ true。 */
@@ -132,7 +172,7 @@ function isAheadOfCurrent(a: string): boolean {
   for (let i = 0; i < Math.max(av.length, cv.length); i++) {
     const x = av[i] ?? 0;
     const y = cv[i] ?? 0;
-    if (Number.isNaN(x) || Number.isNaN(y)) return false; // 不正は ahead 扱いしない
+    if (Number.isNaN(x) || Number.isNaN(y)) return false;
     if (x > y) return true;
     if (x < y) return false;
   }

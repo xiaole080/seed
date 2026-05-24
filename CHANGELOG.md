@@ -77,3 +77,20 @@
   `logCheckIn` / `logCheckOut` が送信を抑止していない既存挙動。次スプリントで対応推奨。
 - **P-7**: 将来 `deploy.yml` に secret 注入する場合、`env:` で渡し `echo` しないことを
   ポリシーとしてコメントで明記する。
+- **4-4**: JSON エクスポート確認文言に「選択した地域名（区市町村レベル）も含まれます」を
+  将来追加推奨。出力対象が `seed.app.state.v1` に乗る `region.name` を含むことを利用者に
+  明示する。
+- **4-5**: 検索ボックスの注意喚起強化。区市町村名以外（病院名・施設名・個人名）を
+  入れないようにプレースホルダ／補足で再度明確化する。
+- **QA 軽微 #2**: `WeatherConsentToggle` の checkbox が `notAsked` と `declined` で
+  同じ表示になる UX 改善余地。明示的に「拒否中」と「未確認」を区別する表示に。
+- **QA 軽微 #3**: HomeScreen ヘッダの天気行と WeatherWidget で数値が二重表示になる
+  ケースの整理。ヘッダ側を簡素化するか WeatherWidget へ集約する。
+- **4-2b**: `src/api/sheets.ts:186-194` の ENDPOINT 未設定時 `console.info(..., { type, payload })`
+  も `import.meta.env.DEV` でガード推奨。本番ビルドで `.env.local` を読まずにデプロイした場合、
+  `logMood` 呼び出しごとに payload（mood/primaryInfluence/selections）がコンソールに出る。
+- **4-3b**: `sanitizeSettingsPayload` の `region` 分岐が `typeof value === 'string'` のみで
+  自由文を弾けていない。将来の呼び出しが誤って custom name（例「台東区, 東京都」）を value に
+  乗せた場合に通過する。許可値を `[...RegionId, 'custom']` の有限セットに限定すると安全。
+- **4-6b**: App レベルで「旧 v1.0 consent からの起動」を直接検証する結合テスト追加（任意）。
+  現状は `migrations.test.ts` がカバーしているが、`App.tsx` スプレッド経路の回帰検出を強化できる。

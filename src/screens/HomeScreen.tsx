@@ -3,6 +3,8 @@ import { PALETTE, ROUNDED_FONT } from '../theme';
 import { BottomTabs, type TabId } from '../components/BottomTabs';
 import { BirdStage } from '../components/BirdStage';
 import { REGIONS } from '../data/regions';
+import { useWeather, type WeatherState } from '../components/useWeather';
+import { WeatherWidget } from '../components/WeatherWidget';
 import {
   STAGE_LABEL,
   dailyWhisperFor,
@@ -10,8 +12,9 @@ import {
 } from '../data/stages';
 import type {
   AttendanceState,
+  ConsentState,
   EggSpeciesId,
-  RegionId,
+  SelectedRegion,
   Stage,
   TodayCard,
 } from '../data/types';
@@ -22,7 +25,9 @@ interface HomeScreenProps {
   totalDays?: number;
   today?: TodayCard | null;
   attendanceState?: AttendanceState;
-  region?: RegionId;
+  region?: SelectedRegion;
+  /** 天気APIの同意状態。'accepted' のみ fetch する。 */
+  weatherConsent?: ConsentState['weatherApiConsent'];
   species?: EggSpeciesId;
   eggName?: string;
   showWhisper?: boolean;
@@ -37,6 +42,8 @@ interface HomeScreenProps {
   /** 昨日分の記録 / 修正画面へ遷移 */
   onLogYesterday?: () => void;
   onOpenCheckIn?: () => void;
+  /** 天気を有効にする導線 (じぶん画面へ遷移) */
+  onEnableWeather?: () => void;
 }
 
 const MODE_LABEL_HOME: Record<TodayCard['mode'], string> = {
@@ -71,13 +78,45 @@ function attendanceLines(today: TodayCard | null, state: AttendanceState) {
   return { title, sub };
 }
 
+/** ヘッダの 1 行サマリ。useWeather の結果を流し込む。 */
+function headerWeatherLine(
+  weather: WeatherState,
+  fallbackIcon: string,
+  fallbackLabel: string,
+  fallbackCond: string,
+): { line1: string; line2: string } {
+  const label = weather.label ?? fallbackLabel;
+  if (weather.kind === 'ready' || weather.kind === 'offline') {
+    const s = weather.snapshot;
+    if (s) {
+      const offlineTag = weather.kind === 'offline' ? ' (オフライン)' : '';
+      return {
+        line1: `${s.icon} ${label} ${Math.round(s.temperature)}° · ${s.cond}`,
+        line2: `気圧 ${Math.round(s.pressure)}hPa${offlineTag}`,
+      };
+    }
+  }
+  if (weather.kind === 'loading') {
+    return {
+      line1: `${fallbackIcon} ${label} -° · 読み込み中…`,
+      line2: '気圧 -hPa',
+    };
+  }
+  // optedOut / error / 初期
+  return {
+    line1: `${fallbackIcon} ${label} -° · ${fallbackCond}`,
+    line2: '気圧 -hPa',
+  };
+}
+
 export function HomeScreen({
   nickname = 'はる',
   stage = 0,
   totalDays = 0,
   today = null,
   attendanceState = 'before',
-  region = 'tokyo',
+  region = { kind: 'preset', presetId: 'tokyo' },
+  weatherConsent = 'notAsked',
   species = 'chicken',
   eggName = '',
   showWhisper = true,
@@ -88,10 +127,23 @@ export function HomeScreen({
   onLogMood,
   onLogYesterday,
   onOpenCheckIn,
+  onEnableWeather,
 }: HomeScreenProps) {
   const milestone = getMilestone(totalDays);
   const whisper = dailyWhisperFor(stage, false);
-  const reg = REGIONS[region] ?? REGIONS.tokyo;
+
+  // 同意済みなら useWeather が fetch する。未同意なら kind:'optedOut' で
+  // ネットワークアクセス 0。
+  const weather = useWeather({ region, consent: weatherConsent });
+
+  // フォールバック表示用 (天気未取得時のラベル・アイコン)
+  const fb =
+    region.kind === 'preset'
+      ? REGIONS[region.presetId] ?? REGIONS.tokyo
+      : { label: region.name, icon: '📍', cond: '—' };
+
+  const header = headerWeatherLine(weather, fb.icon, fb.label, fb.cond);
+
   // 実日付を表示 (T6: ハードコード "5/2" / "土曜日" を撤去)
   const now = new Date();
   const mmdd = `${now.getMonth() + 1}/${now.getDate()}`;
@@ -201,11 +253,20 @@ export function HomeScreen({
                 lineHeight: 1.55,
               }}
             >
-              {reg.icon} {reg.label} {reg.temp}° · {reg.cond}
+              {header.line1}
               <br />
-              気圧 {reg.pressure}hPa · おだやか
+              {header.line2}
             </div>
           </div>
+        </div>
+
+        {/* 天気ウィジェット (同意済みなら詳細表示、未同意なら案内のみ) */}
+        <div style={{ padding: '0 22px 6px' }}>
+          <WeatherWidget
+            weather={weather}
+            consent={weatherConsent}
+            onEnableWeather={onEnableWeather}
+          />
         </div>
 
         <div

@@ -222,6 +222,64 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
     expect(body).not.toContain('自由文');
   });
 
+  it('【プライバシー 4-3】logSettings({ field: "weatherApiConsent", value: "notAsked" }) は外部送信されない', async () => {
+    const fetchSpy = okFetch();
+    vi.stubGlobal('fetch', fetchSpy);
+    const m = await import('./sheets');
+    await m.logSettings(
+      { field: 'weatherApiConsent', value: 'notAsked' },
+      'はる',
+    );
+    // sanitize で弾かれるため outbox にも乗らないし fetch も呼ばれない
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(m.getOutboxSize()).toBe(0);
+  });
+
+  it('【プライバシー 4-3】logSettings は accepted / declined のみ送る', async () => {
+    const fetchSpy = okFetch();
+    vi.stubGlobal('fetch', fetchSpy);
+    const m = await import('./sheets');
+    await m.logSettings(
+      { field: 'weatherApiConsent', value: 'accepted' },
+      'はる',
+    );
+    await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled());
+    const init = fetchSpy.mock.calls[0][1];
+    const body = init.body as string;
+    const event = JSON.parse(body);
+    expect(event.type).toBe('settings');
+    expect(event.payload).toEqual({
+      field: 'weatherApiConsent',
+      value: 'accepted',
+    });
+  });
+
+  it('sanitizeSettingsPayload は不正な field / value を null に落とす', async () => {
+    const m = await import('./sheets');
+    // notAsked は弾く
+    expect(
+      m.sanitizeSettingsPayload({
+        field: 'weatherApiConsent',
+        value: 'notAsked',
+      }),
+    ).toBeNull();
+    // ホワイトリスト外の field は弾く
+    expect(
+      m.sanitizeSettingsPayload({
+        field: 'mysteryField' as never,
+        value: 'x',
+      }),
+    ).toBeNull();
+    // recordIds は number のみ
+    expect(
+      m.sanitizeSettingsPayload({ field: 'recordIds', value: '3' as never }),
+    ).toBeNull();
+    // 正常系は素通り
+    expect(
+      m.sanitizeSettingsPayload({ field: 'recordIds', value: 3 }),
+    ).toEqual({ field: 'recordIds', value: 3 });
+  });
+
   it('sanitizeTaskPayload は不正な型をデフォルトに落とす', async () => {
     const m = await import('./sheets');
     const cleaned = m.sanitizeTaskPayload({

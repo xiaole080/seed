@@ -19,6 +19,10 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
   const [optInBackup, setOptInBackup] = useState(
     consent.attendanceBackupConsent === 'accepted',
   );
+  // 天気API は既定 OFF (パターンB)。ユーザがチェックした場合のみ accepted。
+  const [optInWeather, setOptInWeather] = useState(
+    consent.weatherApiConsent === 'accepted',
+  );
 
   const submit = () => {
     if (!agreed) return;
@@ -28,6 +32,7 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
       attendanceBackupConsent: optInBackup ? 'accepted' : 'declined',
       attendanceExportConsent: 'accepted', // 本人操作でのCSV出力は常に許可
       researchConsent: consent.researchConsent ?? 'notAsked',
+      weatherApiConsent: optInWeather ? 'accepted' : 'declined',
     });
   };
 
@@ -115,6 +120,42 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
             「じぶん」画面にも相談先のカードがあります。
           </Line>
         </Section>
+
+        {/* 天気の表示 (任意 / オプトイン) */}
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: 16,
+            padding: '14px 16px',
+            boxShadow: CARD_SHADOW,
+            marginTop: 16,
+          }}
+        >
+          <label
+            style={{
+              display: 'flex',
+              gap: 10,
+              alignItems: 'flex-start',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={optInWeather}
+              onChange={(e) => setOptInWeather(e.target.checked)}
+              style={{ marginTop: 4 }}
+            />
+            <span style={{ fontSize: 13, lineHeight: 1.6, color: PALETTE.ink }}>
+              <strong>天気を表示する（インターネット通信）</strong>
+              <br />
+              <span style={{ fontSize: 11, color: PALETTE.inkSoft }}>
+                区市町村レベルの天気を表示するため、おおよその位置（小数第2位の緯度経度）
+                だけを Open-Meteo に送ります。体調や自由記述は送りません。
+                あとからオフにできます。
+              </span>
+            </span>
+          </label>
+        </div>
 
         {/* 通所バックアップのオプトイン (§4.2) */}
         <div

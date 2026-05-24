@@ -1,13 +1,9 @@
 // migrations.ts のユニットテスト。
 //
-// 4 ケース最低限:
-//   1. 初回起動 (何もない) → 0.1.0 がセットされる
-//   2. 旧データありで version なし → 0.0.0 扱いから 0.1.0 へ移行、既存データが残る
-//   3. 既に 0.1.0 → 何もしない
-//   4. 未来の 9.9.9 → 落ちずに警告のみ
-//
-// targetDateType の補完については 0.1.0 マイグレで `date` がマイグレ実行日との
-// 差で `today` / `yesterday` になることを確認する。
+// 旧スプリント: 0.0.0 → 0.1.0 で targetDateType を補完する。
+// 今スプリント (2026-05-24): 0.1.0 → 0.2.0 で
+//   - ConsentState.weatherApiConsent を 'notAsked' で補い
+//   - consentVersion を 'v1.1' に書き換える (再同意画面は出さない静かな移行)。
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
@@ -17,13 +13,15 @@ import {
   runMigrations,
   setStoredSchemaVersion,
 } from './migrations';
+import type { ConsentState } from './types';
 
 const DAILY_KEY = 'seed.daily.v1';
+const CONSENT_KEY = 'seed.consent.v1';
 
 beforeEach(() => {
   localStorage.clear();
   vi.useFakeTimers();
-  vi.setSystemTime(new Date(2026, 4, 23, 10, 0, 0)); // 2026-05-23
+  vi.setSystemTime(new Date(2026, 4, 24, 10, 0, 0)); // 2026-05-24
 });
 
 afterEach(() => {
@@ -43,20 +41,26 @@ describe('migrations — 初期状態', () => {
 });
 
 describe('migrations.runMigrations — 各バージョン', () => {
-  it('初回起動 (何もなし) → 0.1.0 がセットされる', () => {
-    runMigrations();
-    expect(getStoredSchemaVersion()).toBe(CURRENT_SCHEMA_VERSION);
-    expect(CURRENT_SCHEMA_VERSION).toBe('0.1.0');
+  it('CURRENT_SCHEMA_VERSION は 0.2.0', () => {
+    expect(CURRENT_SCHEMA_VERSION).toBe('0.2.0');
   });
 
-  it('旧データありで version なし → 0.1.0 へ移行し既存データが残る', () => {
-    // 0.0.0 時代に書き込まれていた DailyRecord (targetDateType なし)
+  it('初回起動 (何もなし) → 0.2.0 がセットされる', () => {
+    runMigrations();
+    expect(getStoredSchemaVersion()).toBe('0.2.0');
+  });
+
+  it('0.0.0 → 0.2.0 通過: 既存 daily の targetDateType が補完される', () => {
+    const d = new Date(2026, 4, 24); // 2026-05-24
+    const todayStr = '2026-05-24';
+    const yesterdayStr = '2026-05-23';
+    void d;
     localStorage.setItem(
       DAILY_KEY,
       JSON.stringify({
-        '2026-05-23': {
+        [todayStr]: {
           localRecordId: 'r1',
-          date: '2026-05-23',
+          date: todayStr,
           mood: 4,
           primaryInfluence: [],
           note: 'これは消えてはいけない',
@@ -72,12 +76,12 @@ describe('migrations.runMigrations — 各バージョン', () => {
             skippedAttendance: false,
             skippedNote: false,
           },
-          createdAt: '2026-05-23T00:00:00.000Z',
-          updatedAt: '2026-05-23T00:00:00.000Z',
+          createdAt: '2026-05-24T00:00:00.000Z',
+          updatedAt: '2026-05-24T00:00:00.000Z',
         },
-        '2026-05-22': {
+        [yesterdayStr]: {
           localRecordId: 'r2',
-          date: '2026-05-22',
+          date: yesterdayStr,
           mood: 3,
           primaryInfluence: [],
           missingness: {
@@ -92,81 +96,86 @@ describe('migrations.runMigrations — 各バージョン', () => {
             skippedAttendance: false,
             skippedNote: true,
           },
-          createdAt: '2026-05-22T00:00:00.000Z',
-          updatedAt: '2026-05-22T00:00:00.000Z',
-        },
-        '2026-05-10': {
-          localRecordId: 'r3',
-          date: '2026-05-10',
-          mood: 2,
-          primaryInfluence: [],
-          missingness: {
-            noRecord: false,
-            skippedMood: false,
-            skippedPrimaryInfluence: true,
-            skippedSleep: true,
-            skippedMeal: true,
-            skippedExercise: true,
-            skippedCondition: true,
-            skippedMedication: true,
-            skippedAttendance: false,
-            skippedNote: true,
-          },
-          createdAt: '2026-05-10T00:00:00.000Z',
-          updatedAt: '2026-05-10T00:00:00.000Z',
-        },
-      }),
-    );
-
-    runMigrations();
-
-    expect(getStoredSchemaVersion()).toBe('0.1.0');
-    const raw = JSON.parse(localStorage.getItem(DAILY_KEY) ?? '{}');
-    // 既存データは残っている
-    expect(raw['2026-05-23'].note).toBe('これは消えてはいけない');
-    expect(raw['2026-05-23'].mood).toBe(4);
-    // 今日との差で targetDateType が補完されている
-    expect(raw['2026-05-23'].targetDateType).toBe('today');
-    expect(raw['2026-05-22'].targetDateType).toBe('yesterday');
-    // 2日以上前は未確定 → 補完しない (後方互換)
-    expect(raw['2026-05-10'].targetDateType).toBeUndefined();
-  });
-
-  it('既に 0.1.0 → 何もしない (DailyRecord に手を加えない)', () => {
-    setStoredSchemaVersion('0.1.0');
-    // targetDateType が既に "today" でセットされている記録は、再実行で書き換えられない
-    localStorage.setItem(
-      DAILY_KEY,
-      JSON.stringify({
-        '2026-05-23': {
-          localRecordId: 'r1',
-          date: '2026-05-23',
-          mood: 4,
-          primaryInfluence: [],
-          targetDateType: 'today',
-          missingness: {
-            noRecord: false,
-            skippedMood: false,
-            skippedPrimaryInfluence: true,
-            skippedSleep: true,
-            skippedMeal: true,
-            skippedExercise: true,
-            skippedCondition: true,
-            skippedMedication: true,
-            skippedAttendance: false,
-            skippedNote: true,
-          },
           createdAt: '2026-05-23T00:00:00.000Z',
           updatedAt: '2026-05-23T00:00:00.000Z',
         },
       }),
     );
-    const before = localStorage.getItem(DAILY_KEY);
 
     runMigrations();
 
-    expect(getStoredSchemaVersion()).toBe('0.1.0');
-    expect(localStorage.getItem(DAILY_KEY)).toBe(before);
+    expect(getStoredSchemaVersion()).toBe('0.2.0');
+    const raw = JSON.parse(localStorage.getItem(DAILY_KEY) ?? '{}');
+    expect(raw[todayStr].note).toBe('これは消えてはいけない');
+    expect(raw[todayStr].targetDateType).toBe('today');
+    expect(raw[yesterdayStr].targetDateType).toBe('yesterday');
+  });
+
+  it('0.1.0 → 0.2.0: 既存 consent に weatherApiConsent="notAsked" が補われ、consentVersion=v1.1 になる', () => {
+    setStoredSchemaVersion('0.1.0');
+    const oldConsent = {
+      appTermsAccepted: true,
+      attendanceBackupConsent: 'accepted',
+      attendanceExportConsent: 'accepted',
+      researchConsent: 'notAsked',
+      consentVersion: 'v1.0',
+      consentedAt: '2026-05-23T00:00:00.000Z',
+    };
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(oldConsent));
+
+    runMigrations();
+
+    expect(getStoredSchemaVersion()).toBe('0.2.0');
+    const next = JSON.parse(localStorage.getItem(CONSENT_KEY) ?? '{}') as ConsentState;
+    expect(next.weatherApiConsent).toBe('notAsked');
+    expect(next.consentVersion).toBe('v1.1');
+    // 既存値は維持
+    expect(next.attendanceBackupConsent).toBe('accepted');
+    expect(next.appTermsAccepted).toBe(true);
+    expect(next.consentedAt).toBe('2026-05-23T00:00:00.000Z');
+  });
+
+  it('既に 0.2.0 → 何もしない (DailyRecord / Consent に手を加えない)', () => {
+    setStoredSchemaVersion('0.2.0');
+    const dailyBefore = JSON.stringify({
+      '2026-05-24': {
+        localRecordId: 'r1',
+        date: '2026-05-24',
+        mood: 4,
+        primaryInfluence: [],
+        targetDateType: 'today',
+        missingness: {
+          noRecord: false,
+          skippedMood: false,
+          skippedPrimaryInfluence: true,
+          skippedSleep: true,
+          skippedMeal: true,
+          skippedExercise: true,
+          skippedCondition: true,
+          skippedMedication: true,
+          skippedAttendance: false,
+          skippedNote: true,
+        },
+        createdAt: '2026-05-24T00:00:00.000Z',
+        updatedAt: '2026-05-24T00:00:00.000Z',
+      },
+    });
+    const consentBefore = JSON.stringify({
+      appTermsAccepted: true,
+      attendanceBackupConsent: 'accepted',
+      attendanceExportConsent: 'accepted',
+      researchConsent: 'notAsked',
+      weatherApiConsent: 'accepted',
+      consentVersion: 'v1.1',
+    });
+    localStorage.setItem(DAILY_KEY, dailyBefore);
+    localStorage.setItem(CONSENT_KEY, consentBefore);
+
+    runMigrations();
+
+    expect(getStoredSchemaVersion()).toBe('0.2.0');
+    expect(localStorage.getItem(DAILY_KEY)).toBe(dailyBefore);
+    expect(localStorage.getItem(CONSENT_KEY)).toBe(consentBefore);
   });
 
   it('未来の 9.9.9 → 落ちずに警告のみで終わる (version を勝手に書き換えない)', () => {
@@ -175,7 +184,6 @@ describe('migrations.runMigrations — 各バージョン', () => {
 
     expect(() => runMigrations()).not.toThrow();
 
-    // version はそのまま (ダウングレードしない)
     expect(getStoredSchemaVersion()).toBe('9.9.9');
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();

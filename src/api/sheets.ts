@@ -132,8 +132,12 @@ async function tryFlushOutbox(): Promise<void> {
 async function trySend(event: SheetEvent): Promise<boolean> {
   if (!ENDPOINT) return false;
   try {
-    // eslint-disable-next-line no-console
-    console.info('[sheets] →', event.type, event);
+    // 本番ビルドでは event 全体 (同意値・nickname を含む) をコンソールに
+    // dump しない。スクリーン共有・ブラウザ拡張経由の覗き見リスクを下げる。
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.info('[sheets] →', event.type, event);
+    }
     const res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -147,8 +151,11 @@ async function trySend(event: SheetEvent): Promise<boolean> {
       return false;
     }
     const text = await _safeText(res);
-    // eslint-disable-next-line no-console
-    console.info('[sheets] ←', event.type, res.status, text);
+    // 本番ビルドではレスポンス文字列もコンソールに出さない (上記と対称)。
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.info('[sheets] ←', event.type, res.status, text);
+    }
     // GAS は 200 でも {"ok":false,...} を返すことがある (auth / SHEET_ID 等)
     if (text.includes('"ok":false')) {
       return false;
@@ -332,12 +339,77 @@ export interface SettingsEventPayload {
     | 'eggSpecies'
     | 'eggTrait'
     | 'eggName'
-    | 'showWhisper';
+    | 'showWhisper'
+    // 天気APIの同意状態の変更 (値は 'accepted' / 'declined' のいずれか)。
+    // 自由記述・健康データは送らない。
+    | 'weatherApiConsent';
   value: unknown;
 }
 
+/**
+ * 外部送信前に必ず通すホワイトリストフィルタ (4-3)。
+ * `SettingsEventPayload.value: unknown` を field ごとに型ガードして、
+ * 想定外の値 (例: `weatherApiConsent: 'notAsked'`, 自由文を含む value) が
+ * 抜け穴として外に出ないようにする。`logTask` / `logMood` と同じ姿勢。
+ *
+ * 不正な field / value を受け取った場合は `null` を返し、`logSettings` 側で送信を止める。
+ */
+export function sanitizeSettingsPayload(
+  payload: SettingsEventPayload,
+): SettingsEventPayload | null {
+  const { field, value } = payload;
+  switch (field) {
+    case 'nickname':
+      // ニックネームは Sheets 側に既に毎イベントの nickname として乗っており、
+      // value としても文字列のみを許可する (オブジェクト等は弾く)。
+      return typeof value === 'string' ? { field, value } : null;
+    case 'region':
+      // region は "種別" のみを送る (custom の name は送らない)。
+      // 現状 'preset' か 'custom' (の RegionId 文字列) を許容する。
+      // 旧呼び出しが `r.presetId` を直接送るため、'tokyo' 等のプリセット ID も通す。
+      if (typeof value !== 'string') return null;
+      return { field, value };
+    case 'recordIds':
+      // 件数のみ (中身は送らない)。
+      return typeof value === 'number' && Number.isFinite(value)
+        ? { field, value }
+        : null;
+    case 'schedule':
+      // 'updated' / 'reset' などの限定文字列のみ。未知値は弾く。
+      return value === 'updated' || value === 'reset' ? { field, value } : null;
+    case 'eggSpecies':
+      return value === 'chicken' || value === 'robin' || value === 'quail'
+        ? { field, value }
+        : null;
+    case 'eggTrait':
+      return value === 'calm' ||
+        value === 'curious' ||
+        value === 'bright' ||
+        value === 'gentle' ||
+        value === null
+        ? { field, value }
+        : null;
+    case 'eggName':
+      // 名前は自由文に近いので送らない。"set" / "cleared" のみ送る。
+      return value === 'set' || value === 'cleared' ? { field, value } : null;
+    case 'showWhisper':
+      return typeof value === 'boolean' ? { field, value } : null;
+    case 'weatherApiConsent':
+      // 'notAsked' は弾く (将来の抜け穴対策)。明示的な 'accepted' / 'declined' のみ。
+      return value === 'accepted' || value === 'declined'
+        ? { field, value }
+        : null;
+    default:
+      // ホワイトリストに無い field は捨てる。
+      return null;
+  }
+}
+
 export function logSettings(payload: SettingsEventPayload, nickname?: string) {
-  return postEvent('settings', payload, nickname);
+  // 二重防衛: 不正な field / value はここで弾く。'notAsked' などは送信されない。
+  const cleaned = sanitizeSettingsPayload(payload);
+  if (cleaned == null) return Promise.resolve();
+  return postEvent('settings', cleaned, nickname);
 }
 
 // ── 既存履歴の初回シード ──────────────────────────────────────

@@ -65,8 +65,8 @@ describe('App — マイグレーション後の初期表示 (T17 / Phase 2a)', 
     expect(
       screen.getByRole('button', { name: /今日の記録を修正する/ }),
     ).toBeInTheDocument();
-    // schemaVersion がマイグレーションで更新されている
-    expect(localStorage.getItem('seed.schema.version')).toBe('"0.1.0"');
+    // schemaVersion がマイグレーションで更新されている (0.2.0 まで進む)
+    expect(localStorage.getItem('seed.schema.version')).toBe('"0.2.0"');
     // 既存 note が消えていない
     const after = JSON.parse(localStorage.getItem('seed.daily.v1') ?? '{}');
     expect(after[today].note).toBe('マイグレ前のメモ');

@@ -22,18 +22,30 @@ import {
   downloadJson,
   exportFilename,
 } from '../data/jsonExport';
-import type { RecordPreset, RegionId, Schedule } from '../data/types';
+import { clearWeatherCache } from '../data/weatherCache';
+import type {
+  ConsentState,
+  RecordPreset,
+  Schedule,
+  SelectedRegion,
+} from '../data/types';
 
 interface ProfileScreenProps {
   nickname?: string;
   schedule?: Schedule;
-  region?: RegionId;
+  region?: SelectedRegion;
+  /** 天気APIの同意状態 (省略時 'notAsked')。 */
+  weatherConsent?: ConsentState['weatherApiConsent'];
   recordIds?: string[];
   /** ON にしているカスタム項目 (永続化対象) */
   customRecordItems?: RecordPreset[];
   onTab?: (t: TabId) => void;
   onChangeNickname?: (v: string) => void;
-  onChangeRegion?: (r: RegionId) => void;
+  onChangeRegion?: (r: SelectedRegion) => void;
+  /** 天気APIの ON/OFF 切替。OFF にしたら親側でキャッシュもクリアする。 */
+  onChangeWeatherConsent?: (next: ConsentState['weatherApiConsent']) => void;
+  /** 「他の地域を探す」遷移。 */
+  onOpenRegionSearch?: () => void;
   /** 記録項目 ON/OFF + カスタム追加・削除を親へ通知 (T5) */
   onChangeRecordItems?: (ids: string[], customs: RecordPreset[]) => void;
   onAllDataDeleted?: () => void;
@@ -42,17 +54,20 @@ interface ProfileScreenProps {
 export function ProfileScreen({
   nickname = 'はる',
   schedule = DEFAULT_SCHEDULE,
-  region = 'tokyo',
+  region = { kind: 'preset', presetId: 'tokyo' },
+  weatherConsent = 'notAsked',
   recordIds = DEFAULT_RECORD_IDS,
   customRecordItems = [],
   onTab,
   onChangeNickname,
   onChangeRegion,
+  onChangeWeatherConsent,
+  onOpenRegionSearch,
   onChangeRecordItems,
   onAllDataDeleted,
 }: ProfileScreenProps) {
   const [nick, setNick] = useState(nickname);
-  const [reg, setReg] = useState<RegionId>(region);
+  const [reg, setReg] = useState<SelectedRegion>(region);
   return (
     <PhoneShell bg={PALETTE.creamSoft} label="05 じぶん">
       <BackgroundLeaves />
@@ -141,15 +156,30 @@ export function ProfileScreen({
           <div style={{ fontSize: 13, fontWeight: 700 }}>天気・気圧の地域</div>
           <div style={{ fontSize: 11, color: PALETTE.inkSoft }}>ホームに表示</div>
         </div>
-        <div style={{ marginBottom: 18 }}>
+        <div style={{ marginBottom: 12 }}>
           <RegionPicker
             value={reg}
             onChange={(r) => {
               setReg(r);
               onChangeRegion?.(r);
             }}
+            onSearchMore={onOpenRegionSearch}
           />
         </div>
+
+        {/* 天気APIの ON/OFF (オプトイン) */}
+        <WeatherConsentToggle
+          consent={weatherConsent}
+          onChange={(next) => {
+            if (next === 'declined') {
+              // OFF にしたらキャッシュも消す (端末内ですぐ反映)
+              clearWeatherCache();
+            }
+            onChangeWeatherConsent?.(next);
+          }}
+        />
+
+        <div style={{ height: 12 }} />
 
         <div
           style={{
@@ -396,6 +426,56 @@ function AttendanceExportCard({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── 天気APIの ON/OFF ────────────────────────────────────────
+//
+// 【外部送信あり】privacy-reviewer の確認対象。
+//  - ON にすると Open-Meteo に区市町村レベルの緯度経度 (小数第2位) を送る。
+//  - 健康データ・自由記述は送らない。
+//  - OFF (declined) にしたらキャッシュも消す。
+function WeatherConsentToggle({
+  consent,
+  onChange,
+}: {
+  consent: ConsentState['weatherApiConsent'];
+  onChange: (next: ConsentState['weatherApiConsent']) => void;
+}) {
+  const on = consent === 'accepted';
+  return (
+    <div
+      style={{
+        background: '#fff',
+        borderRadius: 16,
+        padding: '14px 16px',
+        boxShadow: CARD_SHADOW,
+      }}
+    >
+      <label
+        style={{
+          display: 'flex',
+          gap: 10,
+          alignItems: 'flex-start',
+          cursor: 'pointer',
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={on}
+          onChange={(e) => onChange(e.target.checked ? 'accepted' : 'declined')}
+          style={{ marginTop: 4 }}
+        />
+        <span style={{ fontSize: 13, lineHeight: 1.6, color: PALETTE.ink }}>
+          <strong>天気の取得を有効にする（インターネット通信）</strong>
+          <br />
+          <span style={{ fontSize: 11, color: PALETTE.inkSoft }}>
+            Open-Meteo に区市町村のおおよその位置（小数第2位の緯度経度）だけを送ります。
+            体調や自由記述は送りません。あとからオフにできます。
+          </span>
+        </span>
+      </label>
     </div>
   );
 }

@@ -74,12 +74,32 @@ export type RegionId =
 
 export interface RegionInfo {
   label: string;
-  temp: number;
+  /** プリセット表示用の代表的気温 (Open-Meteo の実値で上書きされる場合あり) */
+  temp?: number;
   icon: string;
+  /** プリセット表示用の天気ラベル (Open-Meteo の実値で上書きされる場合あり) */
   cond: string;
-  pressure: number;
-  trend: 'up' | 'down' | 'stable';
+  /** 区市町村レベルの代表座標 (Open-Meteo 呼び出しに使う前に roundCoord する) */
+  lat: number;
+  lon: number;
+  /**
+   * @deprecated 0.2.0 以降は Open-Meteo の実値を使う。
+   * テストフィクスチャ用に optional として残置。
+   */
+  pressure?: number;
+  /**
+   * @deprecated 0.2.0 以降は Open-Meteo の実値を使う。
+   */
+  trend?: 'up' | 'down' | 'stable';
 }
+
+/**
+ * ユーザが選んだ地域。プリセット 8 都市 or 区市町村検索結果の任意座標。
+ * Sprint 2026-05-24 で導入 (schemaVersion 0.2.0)。
+ */
+export type SelectedRegion =
+  | { kind: 'preset'; presetId: RegionId }
+  | { kind: 'custom'; name: string; lat: number; lon: number };
 
 export interface RecordPreset {
   id: string;
@@ -252,6 +272,13 @@ export interface ConsentState {
   attendanceBackupConsent: 'notAsked' | 'declined' | 'accepted';
   attendanceExportConsent: 'notAsked' | 'declined' | 'accepted';
   researchConsent: 'notAsked' | 'declined' | 'accepted';
+  /**
+   * 天気API (Open-Meteo) への送信同意。
+   * 'accepted' 時のみ区市町村レベルの緯度経度 (小数第2位) を送る。
+   * 既定は 'notAsked' (= 何もしない / fetch 0)。
+   * Sprint 2026-05-24 で追加 (schemaVersion 0.2.0 / consentVersion v1.1)。
+   */
+  weatherApiConsent: 'notAsked' | 'declined' | 'accepted';
   consentVersion: string;
   consentedAt?: string;
   withdrawnAt?: string;

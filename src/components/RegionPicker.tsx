@@ -1,13 +1,24 @@
 import { PALETTE, ROUNDED_FONT, CARD_SHADOW } from '../theme';
 import { REGIONS } from '../data/regions';
-import type { RegionId } from '../data/types';
+import type { RegionId, SelectedRegion } from '../data/types';
 
 interface RegionPickerProps {
-  value?: RegionId;
-  onChange?: (id: RegionId) => void;
+  value?: SelectedRegion;
+  onChange?: (next: SelectedRegion) => void;
+  /** 「他の地域を探す」ボタン押下時の遷移ハンドラ。 */
+  onSearchMore?: () => void;
 }
 
-export function RegionPicker({ value = 'tokyo', onChange }: RegionPickerProps) {
+export function RegionPicker({
+  value,
+  onChange,
+  onSearchMore,
+}: RegionPickerProps) {
+  const selectedPreset: RegionId | null =
+    value && value.kind === 'preset' ? value.presetId : null;
+  const customLabel: string | null =
+    value && value.kind === 'custom' ? value.name : null;
+
   return (
     <div
       style={{
@@ -37,6 +48,23 @@ export function RegionPicker({ value = 'tokyo', onChange }: RegionPickerProps) {
           天気・気圧の表示
         </div>
       </div>
+
+      {customLabel && (
+        <div
+          style={{
+            fontSize: 12,
+            color: PALETTE.sageDeep,
+            background: PALETTE.sageSoft,
+            padding: '6px 10px',
+            borderRadius: 10,
+            marginBottom: 10,
+            fontWeight: 700,
+          }}
+        >
+          📌 {customLabel}
+        </div>
+      )}
+
       <div
         style={{
           display: 'grid',
@@ -46,11 +74,11 @@ export function RegionPicker({ value = 'tokyo', onChange }: RegionPickerProps) {
       >
         {(Object.entries(REGIONS) as [RegionId, typeof REGIONS[RegionId]][]).map(
           ([id, r]) => {
-            const sel = id === value;
+            const sel = id === selectedPreset;
             return (
               <button
                 key={id}
-                onClick={() => onChange?.(id)}
+                onClick={() => onChange?.({ kind: 'preset', presetId: id })}
                 style={{
                   border: 'none',
                   cursor: 'pointer',
@@ -75,6 +103,27 @@ export function RegionPicker({ value = 'tokyo', onChange }: RegionPickerProps) {
           },
         )}
       </div>
+
+      {onSearchMore && (
+        <button
+          onClick={onSearchMore}
+          style={{
+            marginTop: 10,
+            width: '100%',
+            border: `1px dashed ${PALETTE.sage}`,
+            background: 'transparent',
+            color: PALETTE.sageDeep,
+            padding: '8px 10px',
+            borderRadius: 10,
+            fontSize: 12,
+            fontWeight: 700,
+            fontFamily: ROUNDED_FONT,
+            cursor: 'pointer',
+          }}
+        >
+          他の地域を探す →
+        </button>
+      )}
     </div>
   );
 }
