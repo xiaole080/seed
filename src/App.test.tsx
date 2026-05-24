@@ -159,6 +159,68 @@ describe('App — today カードの派生 (T1/T2)', () => {
   });
 });
 
+// T1-B (QA / SPRINT_PROMPT_5 §QA): 日付跨ぎ時に dateKey が再評価され、
+//   前日の checkedOut 状態を引きずらないこと。今日の attendance がまだ無い
+//   ので CheckIn 画面は「未打刻」(=> 「到着したら打刻してね」) で開く。
+describe('App — 日付跨ぎ時の AttendanceCard 切り替え (T1-B / SPRINT 5 QA)', () => {
+  it('23:59 → 00:00 で前日の checkedOut から「未打刻」に切り替わる', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    // 5/25 (月) 23:59
+    vi.setSystemTime(new Date('2026-05-25T23:59:00'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    // 前日 (5/25 月) の attendance を checkedOut 状態でセット
+    const prevDate = '2026-05-25';
+    localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+    localStorage.setItem(
+      'seed.attendance.v1',
+      JSON.stringify({
+        [prevDate]: {
+          localAttendanceId: `att_${prevDate}`,
+          date: prevDate,
+          weekday: 'Mon',
+          plannedMode: 'office',
+          plannedBand: 'full',
+          actualMode: 'office',
+          checkIn: '09:42',
+          checkOut: '15:08',
+          durationMinutes: 326,
+          missingClock: false,
+          edited: false,
+          exportMonth: '2026-05',
+        },
+      }),
+    );
+
+    render(<App />);
+
+    // 23:59 の時点では前日の attendance が「今日」とみなされ checkedOut で表示される
+    await user.click(screen.getByText('ATTENDANCE'));
+    expect(screen.getByText('おつかれさまでした')).toBeInTheDocument();
+
+    // 一旦ホームに戻る (CheckIn 画面のサブツリーを再マウントさせるため)
+    await user.click(screen.getByRole('button', { name: /ホームへもどる/ }));
+
+    // 5/26 (火) 00:00 へ移行 → setInterval(60_000) で dateKey 再評価
+    vi.setSystemTime(new Date('2026-05-26T00:00:30'));
+    // 60 秒進めて check() を発火させる
+    vi.advanceTimersByTime(60_000);
+
+    // 再度 CheckIn 画面を開くと「未打刻」(到着したら打刻してね) になっている
+    await user.click(screen.getByText('ATTENDANCE'));
+    // 火曜日も office なので「到着したら打刻してね」(state=before) が出る
+    expect(screen.getByText('到着したら打刻してね')).toBeInTheDocument();
+    // 前日の checkedOut 文言は消えている
+    expect(
+      screen.queryByText('おつかれさまでした'),
+    ).not.toBeInTheDocument();
+    // 前日の実打刻時刻も今日のレンジには出ていない
+    expect(screen.queryByText(/\(09:42 〜 15:08\)/)).not.toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+});
+
 describe('App — オンボーディングから記録まで通し', () => {
   it('同意 → ログイン → 初期設定スキップ → ホーム → 気分記録 → リアクション', async () => {
     const user = userEvent.setup();

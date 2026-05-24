@@ -6,6 +6,7 @@ import {
   countRecordedDays,
   currentStreak,
   upsertAttendance,
+  deleteAttendance,
   getAttendance,
   listAttendanceByMonth,
   todayISO,
@@ -180,6 +181,49 @@ describe('store — Attendance CRUD', () => {
     // daily を消しても attendance は残る
     expect(getDailyRecord('2026-05-25')).toBeUndefined();
     expect(getAttendance('2026-05-25')).toBeDefined();
+  });
+});
+
+// T3-A: 日単位での打刻取り消し。打刻ミスや誤入力時の救済導線として、
+// 「取り消す」ボタン (CheckInScreen) から呼ばれる。
+describe('store — deleteAttendance (T3-A)', () => {
+  it('対象日のレコードだけを消す', () => {
+    upsertAttendance(att('2026-05-25', { checkIn: '09:30' }));
+    upsertAttendance(att('2026-05-26', { checkIn: '09:30' }));
+    deleteAttendance('2026-05-25');
+    expect(getAttendance('2026-05-25')).toBeUndefined();
+    expect(getAttendance('2026-05-26')).toBeDefined();
+  });
+
+  it('存在しない日付を渡しても例外を投げない (no-op)', () => {
+    upsertAttendance(att('2026-05-25'));
+    expect(() => deleteAttendance('2099-01-01')).not.toThrow();
+    expect(getAttendance('2026-05-25')).toBeDefined();
+  });
+
+  it('他キー (daily / consent / careGoals / weather) は触らない', () => {
+    upsertDailyRecord(daily('2026-05-25'));
+    upsertAttendance(att('2026-05-25'));
+    localStorage.setItem('seed.consent.v1', '{"appTermsAccepted":true}');
+    localStorage.setItem(
+      'seed.care.goals.v1',
+      '{"smallGoals":[],"concernGoals":[]}',
+    );
+    localStorage.setItem('seed.weather.v1', '{"snapshot":null}');
+
+    deleteAttendance('2026-05-25');
+
+    // 通所だけ消える
+    expect(getAttendance('2026-05-25')).toBeUndefined();
+    // 他キーは生き残る
+    expect(getDailyRecord('2026-05-25')).toBeDefined();
+    expect(localStorage.getItem('seed.consent.v1')).toBe(
+      '{"appTermsAccepted":true}',
+    );
+    expect(localStorage.getItem('seed.care.goals.v1')).toBe(
+      '{"smallGoals":[],"concernGoals":[]}',
+    );
+    expect(localStorage.getItem('seed.weather.v1')).toBe('{"snapshot":null}');
   });
 });
 

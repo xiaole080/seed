@@ -467,12 +467,14 @@ function WeatherConsentToggle({
           onChange={(e) => onChange(e.target.checked ? 'accepted' : 'declined')}
           style={{ marginTop: 4 }}
         />
+        {/* T6-A (B 案): やわらかい日本語に統一。
+            送信内容の最小性 (区市町村レベルのだいたいの位置のみ / 体調・自由記述は送らない)
+            といつでもオフにできることを明示する。 */}
         <span style={{ fontSize: 13, lineHeight: 1.6, color: PALETTE.ink }}>
-          <strong>天気の取得を有効にする（インターネット通信）</strong>
+          <strong>天気と気圧を表示する</strong>
           <br />
           <span style={{ fontSize: 11, color: PALETTE.inkSoft }}>
-            Open-Meteo に区市町村のおおよその位置（小数第2位の緯度経度）だけを送ります。
-            体調や自由記述は送りません。あとからオフにできます。
+            選んだ地域の天気を Open-Meteo から取り寄せます。送るのは区市町村レベルのだいたいの位置だけで、体調や自由記述は送りません。いつでもオフにできます。
           </span>
         </span>
       </label>

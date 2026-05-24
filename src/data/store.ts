@@ -236,6 +236,22 @@ export function upsertAttendance(rec: AttendanceMonthlyRecord): void {
   writeAttendance(map);
 }
 
+/**
+ * 指定日の通所打刻レコードのみを削除する。
+ * 他日付・他キー (daily / consent / careGoals / weather など) は触らない。
+ * 該当日が無ければ no-op。
+ *
+ * §13.2: 削除は本人操作の明示的な確認後に呼ぶ前提。
+ *  Sheets に既送信のぶんはここでは取り消せない (呼び出し側で注記する)。
+ */
+export function deleteAttendance(date: string): void {
+  const map = readAttendance();
+  if (date in map) {
+    delete map[date];
+    writeAttendance(map);
+  }
+}
+
 export function getAttendance(date: string): AttendanceMonthlyRecord | undefined {
   return readAttendance()[date];
 }

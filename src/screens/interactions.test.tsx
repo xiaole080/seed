@@ -137,18 +137,18 @@ describe('CheckInScreen', () => {
     expect(onCheckIn).toHaveBeenCalledOnce();
   });
 
-  it('お休みの日は「お休みのままにする」と「打刻に進む」の2ボタンが出る (T6)', () => {
+  it('お休みの日は「お休みのままにする」と「やっぱり通所する」の2ボタンが出る (T6 / T4-A)', () => {
     const offToday: TodayCard = { mode: 'off', band: 'full', dayLabel: '土' };
     render(<CheckInScreen today={offToday} state="before" />);
     expect(
       screen.getByRole('button', { name: 'お休みのままにする' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: '打刻に進む' }),
+      screen.getByRole('button', { name: 'やっぱり通所する' }),
     ).toBeInTheDocument();
   });
 
-  it('「打刻に進む」を押すと例外打刻フローに切り替わり、打刻ボタンと「お休みに戻す」が出る (T6)', async () => {
+  it('「やっぱり通所する」を押すと例外打刻フローに切り替わり、打刻ボタンと「お休みに戻す」が出る (T6 / T4-A)', async () => {
     const user = userEvent.setup();
     const onCheckIn = vi.fn();
     const offToday: TodayCard = { mode: 'off', band: 'full', dayLabel: '土' };
@@ -160,7 +160,7 @@ describe('CheckInScreen', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: '打刻に進む' }));
+    await user.click(screen.getByRole('button', { name: 'やっぱり通所する' }));
 
     // ヒーロー文言と通所打刻ボタンに差し替わる
     expect(screen.getByText('今日だけ打刻しますか？')).toBeInTheDocument();
@@ -181,7 +181,7 @@ describe('CheckInScreen', () => {
     const offToday: TodayCard = { mode: 'off', band: 'full', dayLabel: '土' };
     render(<CheckInScreen today={offToday} state="before" />);
 
-    await user.click(screen.getByRole('button', { name: '打刻に進む' }));
+    await user.click(screen.getByRole('button', { name: 'やっぱり通所する' }));
     await user.click(screen.getByRole('button', { name: 'お休みに戻す' }));
 
     // 初期2択に戻っている
@@ -189,7 +189,7 @@ describe('CheckInScreen', () => {
       screen.getByRole('button', { name: 'お休みのままにする' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: '打刻に進む' }),
+      screen.getByRole('button', { name: 'やっぱり通所する' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'お休みに戻す' }),
@@ -261,7 +261,7 @@ describe('CheckInScreen', () => {
       screen.queryByRole('button', { name: 'お休みのままにする' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: '打刻に進む' }),
+      screen.queryByRole('button', { name: 'やっぱり通所する' }),
     ).not.toBeInTheDocument();
   });
 
@@ -275,6 +275,231 @@ describe('CheckInScreen', () => {
     render(<CheckInScreen today={offToday} state="checkedIn" />);
     // MODE_LABEL.office === '通所' を前提に、ヘッダーカードに通所ラベルが出る。
     expect(screen.getByText(/通所・/)).toBeInTheDocument();
+  });
+
+  // ── T2-A/T2-B: 危険文言の削除と C 案文言の追加 ──────────────
+  it('旧フッター文言は表示されない (T2-A)', () => {
+    render(<CheckInScreen today={today} state="before" />);
+    expect(screen.queryByText(/遅くなっても/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/来られなくても/)).not.toBeInTheDocument();
+  });
+
+  it('新フッター文言 (打刻 ≠ 連絡) が表示される (T2-B)', () => {
+    render(<CheckInScreen today={today} state="before" />);
+    expect(
+      screen.getByText(/この打刻は記録のためのものです。/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/事業所への出欠の連絡は、これまでどおりお願いします。/),
+    ).toBeInTheDocument();
+  });
+
+  // ── T1-C: 時刻を手で直す (インライン編集) ───────────────────
+  it('「時刻を手で直す」→ 編集 → 保存で onTimeEdit が呼ばれる (T1-C)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-25T16:00:00'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const onTimeEdit = vi.fn();
+    const t: TodayCard = {
+      mode: 'office',
+      band: 'full',
+      dayLabel: '月',
+      checkInTime: '09:42',
+      checkOutTime: '15:08',
+    };
+    render(
+      <CheckInScreen
+        today={t}
+        state="checkedOut"
+        onTimeEdit={onTimeEdit}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '時刻を手で直す' }));
+    const inInput = screen.getByLabelText('到着時刻') as HTMLInputElement;
+    const outInput = screen.getByLabelText('帰宅時刻') as HTMLInputElement;
+    expect(inInput.value).toBe('09:42');
+    expect(outInput.value).toBe('15:08');
+
+    // 到着を 10:00 / 帰宅を 14:30 に書き換える
+    await user.clear(inInput);
+    await user.type(inInput, '10:00');
+    await user.clear(outInput);
+    await user.type(outInput, '14:30');
+
+    await user.click(screen.getByRole('button', { name: '保存' }));
+    expect(onTimeEdit).toHaveBeenCalledWith({
+      checkIn: '10:00',
+      checkOut: '14:30',
+    });
+    vi.useRealTimers();
+  });
+
+  it('未来時刻はエラー表示で保存が無効化される (T1-C バリデーション)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-25T10:00:00'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const onTimeEdit = vi.fn();
+    const t: TodayCard = {
+      mode: 'office',
+      band: 'full',
+      dayLabel: '月',
+      checkInTime: '09:30',
+    };
+    render(
+      <CheckInScreen today={t} state="checkedIn" onTimeEdit={onTimeEdit} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '時刻を手で直す' }));
+    const inInput = screen.getByLabelText('到着時刻') as HTMLInputElement;
+    await user.clear(inInput);
+    await user.type(inInput, '23:30'); // 現在 10:00 より後 = 未来
+
+    expect(
+      screen.getByText('未来の時刻は記録できません'),
+    ).toBeInTheDocument();
+    const saveBtn = screen.getByRole('button', { name: '保存' });
+    expect(saveBtn).toBeDisabled();
+    await user.click(saveBtn);
+    expect(onTimeEdit).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('帰宅 < 到着はエラー表示で保存が無効化される (T1-C バリデーション)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-25T20:00:00'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const onTimeEdit = vi.fn();
+    const t: TodayCard = {
+      mode: 'office',
+      band: 'full',
+      dayLabel: '月',
+      checkInTime: '10:00',
+      checkOutTime: '15:00',
+    };
+    render(
+      <CheckInScreen today={t} state="checkedOut" onTimeEdit={onTimeEdit} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '時刻を手で直す' }));
+    const outInput = screen.getByLabelText('帰宅時刻') as HTMLInputElement;
+    await user.clear(outInput);
+    await user.type(outInput, '09:00'); // 到着 10:00 より前
+
+    expect(
+      screen.getByText('帰宅は到着より後にしてください'),
+    ).toBeInTheDocument();
+    const saveBtn = screen.getByRole('button', { name: '保存' });
+    expect(saveBtn).toBeDisabled();
+    await user.click(saveBtn);
+    expect(onTimeEdit).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('編集パネルを開くと Google Sheets 注記が一律表示される (T1-C / Sheets 注記)', async () => {
+    // privacy-reviewer 指摘:
+    //   handleTimeEdit は localStorage のみ更新し Sheets に再送しない設計のため、
+    //   削除パネルと同様に「シート側には最初の打刻時刻が残る」旨を編集パネル
+    //   にも明示する。
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-25T20:00:00'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const t: TodayCard = {
+      mode: 'office',
+      band: 'full',
+      dayLabel: '月',
+      checkInTime: '09:42',
+      checkOutTime: '15:08',
+    };
+    render(<CheckInScreen today={t} state="checkedOut" />);
+
+    await user.click(screen.getByRole('button', { name: '時刻を手で直す' }));
+    expect(screen.getByText(/Google Sheets/)).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it('キャンセルで編集モードが閉じ、onTimeEdit は呼ばれない (T1-C)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-25T20:00:00'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const onTimeEdit = vi.fn();
+    const t: TodayCard = {
+      mode: 'office',
+      band: 'full',
+      dayLabel: '月',
+      checkInTime: '09:42',
+      checkOutTime: '15:08',
+    };
+    render(
+      <CheckInScreen today={t} state="checkedOut" onTimeEdit={onTimeEdit} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '時刻を手で直す' }));
+    const inInput = screen.getByLabelText('到着時刻') as HTMLInputElement;
+    await user.clear(inInput);
+    await user.type(inInput, '11:11');
+    await user.click(screen.getByRole('button', { name: 'キャンセル' }));
+
+    expect(onTimeEdit).not.toHaveBeenCalled();
+    // 編集 UI が閉じ、再度「時刻を手で直す」ボタンが見える
+    expect(
+      screen.getByRole('button', { name: '時刻を手で直す' }),
+    ).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  // ── T3-B/T3-C: 取り消すボタン + 確認ダイアログ + Sheets 注記 ─
+  it('checkedIn 中は「この打刻を取り消す」ボタンが出る (T3-B)', () => {
+    render(<CheckInScreen today={today} state="checkedIn" />);
+    expect(
+      screen.getByRole('button', { name: 'この打刻を取り消す' }),
+    ).toBeInTheDocument();
+  });
+
+  it('before 状態では「この打刻を取り消す」ボタンは出ない (T3-B)', () => {
+    render(<CheckInScreen today={today} state="before" />);
+    expect(
+      screen.queryByRole('button', { name: 'この打刻を取り消す' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('取り消し → 確認 → 「取り消す」で onDelete が呼ばれる (T3-B / T3-C)', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    render(
+      <CheckInScreen today={today} state="checkedOut" onDelete={onDelete} />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: 'この打刻を取り消す' }),
+    );
+    // 確認文言 + Sheets 注記 (T3-C 一律表示) が出る
+    expect(
+      screen.getByText(/今日の打刻を取り消しますか？/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/すでに Google Sheets に送信された記録は/),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '取り消す' }));
+    expect(onDelete).toHaveBeenCalledOnce();
+  });
+
+  it('取り消し確認で「やめる」を押すと onDelete は呼ばれず、ボタンに戻る (T3-B)', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    render(
+      <CheckInScreen today={today} state="checkedOut" onDelete={onDelete} />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: 'この打刻を取り消す' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'やめる' }));
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: 'この打刻を取り消す' }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -297,8 +522,8 @@ describe('例外打刻フローの永続化 (T6/T7)', () => {
     // ホーム → ATTENDANCE タップで CheckIn 画面へ
     await user.click(screen.getByText('ATTENDANCE'));
 
-    // 休みの2択 → 「打刻に進む」
-    await user.click(screen.getByRole('button', { name: '打刻に進む' }));
+    // 休みの2択 → 「やっぱり通所する」
+    await user.click(screen.getByRole('button', { name: 'やっぱり通所する' }));
     // 通所打刻
     await user.click(screen.getByRole('button', { name: /通所打刻/ }));
 
@@ -427,5 +652,18 @@ describe('HomeScreen — T6 今日/昨日の記録導線ボタン文言', () => 
       screen.queryByText(/修正しますか？/),
     ).not.toBeInTheDocument();
     expect(onLogMood).toHaveBeenCalledOnce();
+  });
+
+  // UI① (SPRINT_PROMPT_5 §UI① / T5-A A 案): ヘッダーから天気テキスト 2 行を撤去し、
+  //   気圧の表示は WeatherWidget 1 箇所に集約する。
+  //   - 同意未取得 (weatherConsent=notAsked) の場合は WeatherWidget 自体に「気圧」
+  //     テキストが出ないため、テストでは同意済み + ready snapshot を直接渡せない
+  //     コンポーネント構造になっている。代わりにヘッダー側に気圧が再導入されて
+  //     いないことを確認する。
+  it('UI①: ホームヘッダーに「気圧」テキストが残っていない (同意未取得時)', () => {
+    render(<HomeScreen weatherConsent="notAsked" />);
+    // 同意未取得時は WeatherWidget も「天気の表示はオフです」のみで気圧テキストは出ない。
+    // ヘッダー側にも気圧テキストが復活していないことを確認する。
+    expect(screen.queryAllByText(/気圧/)).toHaveLength(0);
   });
 });

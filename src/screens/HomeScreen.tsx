@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { PALETTE, ROUNDED_FONT } from '../theme';
 import { BottomTabs, type TabId } from '../components/BottomTabs';
 import { BirdStage } from '../components/BirdStage';
-import { REGIONS } from '../data/regions';
-import { useWeather, type WeatherState } from '../components/useWeather';
+import { useWeather } from '../components/useWeather';
 import { WeatherWidget } from '../components/WeatherWidget';
 import {
   STAGE_LABEL,
@@ -60,7 +59,7 @@ const BAND_LABEL_HOME: Record<TodayCard['band'], string> = {
 function attendanceLines(today: TodayCard | null, state: AttendanceState) {
   if (!today || today.mode === 'off') {
     // T5: 休みの日は文言を統一し、ATTENDANCE タップで CheckInScreen に遷移できるよう
-    // 「打刻に進む →」のヒントを併記する (実際の表示は呼び出し側で isAttendable に従って付ける)。
+    // 「やっぱり通所する →」のヒントを併記する (実際の表示は呼び出し側で isAttendable に従って付ける)。
     return { title: 'きょうはお休みの日', sub: 'ゆっくり過ごしてくださいね' };
   }
   const m = MODE_LABEL_HOME[today.mode] ?? '通所';
@@ -80,36 +79,9 @@ function attendanceLines(today: TodayCard | null, state: AttendanceState) {
   return { title, sub };
 }
 
-/** ヘッダの 1 行サマリ。useWeather の結果を流し込む。 */
-function headerWeatherLine(
-  weather: WeatherState,
-  fallbackIcon: string,
-  fallbackLabel: string,
-  fallbackCond: string,
-): { line1: string; line2: string } {
-  const label = weather.label ?? fallbackLabel;
-  if (weather.kind === 'ready' || weather.kind === 'offline') {
-    const s = weather.snapshot;
-    if (s) {
-      const offlineTag = weather.kind === 'offline' ? ' (オフライン)' : '';
-      return {
-        line1: `${s.icon} ${label} ${Math.round(s.temperature)}° · ${s.cond}`,
-        line2: `気圧 ${Math.round(s.pressure)}hPa${offlineTag}`,
-      };
-    }
-  }
-  if (weather.kind === 'loading') {
-    return {
-      line1: `${fallbackIcon} ${label} -° · 読み込み中…`,
-      line2: '気圧 -hPa',
-    };
-  }
-  // optedOut / error / 初期
-  return {
-    line1: `${fallbackIcon} ${label} -° · ${fallbackCond}`,
-    line2: '気圧 -hPa',
-  };
-}
+// T5-A: 旧 headerWeatherLine() (天気テキストを 2 行で組み立て) は WeatherWidget と
+// 重複表示になるため A 案として撤去。ヘッダは日付＋曜日のみを残し、天気詳細は
+// WeatherWidget 1 箇所に集約する。
 
 export function HomeScreen({
   nickname = 'はる',
@@ -138,14 +110,6 @@ export function HomeScreen({
   // ネットワークアクセス 0。
   const weather = useWeather({ region, consent: weatherConsent });
 
-  // フォールバック表示用 (天気未取得時のラベル・アイコン)
-  const fb =
-    region.kind === 'preset'
-      ? REGIONS[region.presetId] ?? REGIONS.tokyo
-      : { label: region.name, icon: '📍', cond: '—' };
-
-  const header = headerWeatherLine(weather, fb.icon, fb.label, fb.cond);
-
   // 実日付を表示 (T6: ハードコード "5/2" / "土曜日" を撤去)
   const now = new Date();
   const mmdd = `${now.getMonth() + 1}/${now.getDate()}`;
@@ -153,7 +117,7 @@ export function HomeScreen({
   const weekday = `${WEEKDAY_JP[now.getDay()]}曜日`;
   const att = attendanceLines(today, attendanceState);
   // T5: 休みの日でも CheckInScreen への遷移は可。
-  // 例外打刻の入り口は CheckInScreen 側 (お休みのままにする / 打刻に進む) で確認する。
+  // 例外打刻の入り口は CheckInScreen 側 (お休みのままにする / やっぱり通所する) で確認する。
   const isAttendable = !!today;
   const isOffDay = !!today && today.mode === 'off';
 
@@ -248,20 +212,10 @@ export function HomeScreen({
           >
             {mmdd}
           </div>
+          {/* T5-A (A 案): ここから天気テキスト 2 行を撤去。
+              天気と気圧の詳細表示は下部の <WeatherWidget> 1 箇所に集約する。 */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700 }}>{weekday}</div>
-            <div
-              style={{
-                fontSize: 10,
-                color: PALETTE.inkSoft,
-                marginTop: 3,
-                lineHeight: 1.55,
-              }}
-            >
-              {header.line1}
-              <br />
-              {header.line2}
-            </div>
           </div>
         </div>
 
@@ -390,7 +344,9 @@ export function HomeScreen({
                   <span
                     style={{ color: PALETTE.sageDeep, fontWeight: 700 }}
                   >
-                    {isOffDay ? '打刻に進む →' : 'タップで打刻 →'}
+                    {/* T4-B: 休みの日の打刻導線文言を CheckInScreen 側のサブボタン (T4-A)
+                        と統一して「やっぱり通所する」に揃える。 */}
+                    {isOffDay ? 'やっぱり通所する →' : 'タップで打刻 →'}
                   </span>
                 </>
               )}

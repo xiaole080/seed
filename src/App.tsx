@@ -44,6 +44,7 @@ import { clearWeatherCache } from './data/weatherCache';
 import {
   countRecordedDays,
   currentStreak,
+  deleteAttendance,
   getAttendance,
   getDailyRecord,
   nowHHmm,
@@ -262,7 +263,27 @@ export default function App() {
   // - state には固定値を持たない (T1: 旧 todayMode/todayBand 廃止)
   // - 実打刻時刻 (checkInTime / checkOutTime) は AttendanceMonthlyRecord から引く (T2)
   // - 日付が変わる or 打刻が増えるたびに再計算が走るよう deps に dateKey と storeTick を入れる
-  const dateKey = todayISO();
+  //
+  // T1-B: アプリを開きっぱなしで日付が跨いだとき、dateKey が再評価されないと
+  // 「前日の打刻状態」のまま表示されてしまう。1 分ごとに todayISO() を再判定し、
+  // 日付が変わったら state を bump する。visibilitychange でも即再評価する
+  // (スマホでバックグラウンドにあった場合の復帰時に間に合わせる)。
+  const [dateKey, setDateKey] = useState<string>(() => todayISO());
+  useEffect(() => {
+    const check = () => {
+      const next = todayISO();
+      setDateKey((prev) => (prev === next ? prev : next));
+    };
+    const id = window.setInterval(check, 60_000);
+    const onVis = () => {
+      if (document.visibilityState === 'visible') check();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, []);
   const today: TodayCard = useMemo(() => {
     const slot = scheduleSlotFor(dateKey, state.schedule);
     const [y, m, d] = dateKey.split('-').map(Number);
@@ -325,7 +346,7 @@ export default function App() {
     update({ attendanceState: 'checkedIn' });
     const time = nowHHmm();
     const rec = ensureTodayAttendance();
-    // T6/T7: 予定が休み (off) の日でも CheckInScreen から「打刻に進む」で
+    // T6/T7: 予定が休み (off) の日でも CheckInScreen から「やっぱり通所する」で
     // 進入した場合は例外打刻として扱う。actualMode は 'office' を入れる
     // (plannedMode='off' + actualMode='office' で支援員側が例外を識別する)。
     const actual: TodayCard['mode'] =
@@ -365,6 +386,43 @@ export default function App() {
       { mode: actual, band: today.band, state: 'checkedOut', time },
       state.nickname,
     );
+  };
+
+  // T1-C: 「時刻を手で直す」インライン編集の保存。
+  // - 既存レコードを土台に checkIn / checkOut を差し替える (durationMinutes も再計算)
+  // - edited フラグを立てる (Sheets 側で「修正済」識別のため)
+  // - Sheets への再送はここでは行わない。ローカル整合のみを優先する (§13.2)。
+  const handleTimeEdit = (next: { checkIn?: string; checkOut?: string }) => {
+    const rec = ensureTodayAttendance();
+    const checkIn = next.checkIn;
+    const checkOut = next.checkOut;
+    const durationMinutes =
+      checkIn != null && checkOut != null
+        ? diffMinutes(checkIn, checkOut)
+        : undefined;
+    upsertAttendance({
+      ...rec,
+      checkIn,
+      checkOut,
+      durationMinutes,
+      missingClock: checkIn == null,
+      edited: true,
+    });
+    // attendanceState は次のレコード状態に合わせ直す
+    const nextState: AttendanceState =
+      checkOut != null ? 'checkedOut' : checkIn != null ? 'checkedIn' : 'before';
+    update({ attendanceState: nextState });
+    bumpStore();
+  };
+
+  // T3-B: 今日の打刻を丸ごと取り消す。
+  // - deleteAttendance で localStorage の該当日エントリのみ削除
+  // - attendanceState を 'before' に戻す → CheckInScreen は再打刻可能に戻る
+  // - Sheets 既送信のぶんはここでは取り消せない (UI 側で注記済 / T3-C)
+  const handleDeleteToday = () => {
+    deleteAttendance(todayISO());
+    update({ attendanceState: 'before' });
+    bumpStore();
   };
 
   let inner: ReactNode = null;
@@ -526,6 +584,8 @@ export default function App() {
         onBack={() => setRoute('home')}
         onCheckIn={handleCheckIn}
         onCheckOut={handleCheckOut}
+        onTimeEdit={handleTimeEdit}
+        onDelete={handleDeleteToday}
         onTab={(t) => setRoute(t)}
       />
     );
