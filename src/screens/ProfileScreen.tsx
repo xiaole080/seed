@@ -69,7 +69,7 @@ export function ProfileScreen({
   const [nick, setNick] = useState(nickname);
   const [reg, setReg] = useState<SelectedRegion>(region);
   return (
-    <PhoneShell bg={PALETTE.creamSoft} label="05 じぶん">
+    <PhoneShell bg={PALETTE.creamSoft} label="05 わたし">
       <BackgroundLeaves />
       <div
         style={{
@@ -91,7 +91,7 @@ export function ProfileScreen({
             marginBottom: 10,
           }}
         >
-          <div style={{ fontSize: 22, fontWeight: 700 }}>じぶん</div>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>わたし</div>
         </div>
 
         <div

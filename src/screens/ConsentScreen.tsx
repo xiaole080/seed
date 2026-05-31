@@ -127,7 +127,7 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
 
         <Section title="やめたくなったら">
           <Line icon="🗑️">
-            「じぶん」画面から、いつでも端末のデータを消せます。
+            「わたし」画面から、いつでも端末のデータを消せます。
           </Line>
           <Line icon="✉️">
             外部に送られたぶんも、配布者に連絡すれば消してもらえます。
@@ -142,7 +142,7 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
             <br />
             <strong>よりそいホットライン 0120-279-338</strong>
             <br />
-            「じぶん」画面にも相談先のカードがあります。
+            「わたし」画面にも相談先のカードがあります。
           </Line>
         </Section>
 
@@ -212,7 +212,7 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
               <span style={{ fontSize: 11, color: PALETTE.inkSoft }}>
                 月末に支援員と確認しやすくするためのものです。
                 気分・睡眠・食事・体調・服薬・自由記述は含まれません。
-                あとから「じぶん」で切り替えられます。
+                あとから「わたし」で切り替えられます。
               </span>
             </span>
           </label>

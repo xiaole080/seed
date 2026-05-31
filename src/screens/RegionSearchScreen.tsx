@@ -151,7 +151,7 @@ export function RegionSearchScreen({
               marginBottom: 12,
             }}
           >
-            天気の取得を「じぶん」画面で有効にすると、
+            天気の取得を「わたし」画面で有効にすると、
             区市町村名で検索できます。
           </div>
         )}

@@ -49,7 +49,7 @@ import {
 } from '../data/historyCopy';
 
 interface HistoryScreenProps {
-  /** 「じぶん」画面で ON の記録項目。既定は全 5 項目 ON。 */
+  /** 「わたし」画面で ON の記録項目。既定は全 5 項目 ON。 */
   recordIds?: string[];
   /** 初期の期間モード。既定は 7 日。 */
   initialRange?: HistoryRange;

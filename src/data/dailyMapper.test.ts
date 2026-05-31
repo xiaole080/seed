@@ -279,7 +279,7 @@ describe('buildDailyRecord — targetDateType (schemaVersion 0.1.0)', () => {
 });
 
 describe('buildDailyRecord — OFF カテゴリの previous 温存 (T5 §8.5)', () => {
-  // 仕様: じぶん画面で項目を OFF にしても、過去日に既にあるデータを消さない。
+  // 仕様: わたし画面で項目を OFF にしても、過去日に既にあるデータを消さない。
   // OFF カテゴリは UI で触れない → buildDailyRecord は previous の値を残す。
 
   const previous: StoredDailyRecord = {

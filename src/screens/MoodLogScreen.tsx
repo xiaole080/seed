@@ -16,7 +16,7 @@ import type { Mood, PrimaryInfluence } from '../data/types';
 
 interface MoodLogScreenProps {
   initialMood?: Mood;
-  /** ユーザが「じぶん」画面で有効化している詳細記録カテゴリ */
+  /** ユーザが「わたし」画面で有効化している詳細記録カテゴリ */
   enabledCategoryIds?: string[];
   /** 記録対象日 (YYYY-MM-DD)。未指定なら今日。 */
   targetDate?: string;
@@ -510,7 +510,7 @@ export function MoodLogScreen({
                   lineHeight: 1.6,
                 }}
               >
-                記録項目は「じぶん」画面で追加できます。
+                記録項目は「わたし」画面で追加できます。
               </div>
             )}
             {enabledCategories.map((cat) => {
@@ -706,7 +706,7 @@ export function MoodLogScreen({
           <br />
           書きたくないことは書かなくて大丈夫です。
           <br />
-          緊急のご相談には使わないでください（じぶん画面に相談先があります）。
+          緊急のご相談には使わないでください（わたし画面に相談先があります）。
           <br />
           個人名・施設名などを書きすぎないでください。
         </div>

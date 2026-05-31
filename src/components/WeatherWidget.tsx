@@ -8,7 +8,7 @@ interface WeatherWidgetProps {
   weather?: WeatherState;
   /** 同意状態。未指定なら 'notAsked' 扱い。 */
   consent?: ConsentState['weatherApiConsent'];
-  /** 「天気を有効にする」ボタン。じぶん画面へ遷移など。 */
+  /** 「天気を有効にする」ボタン。わたし画面へ遷移など。 */
   onEnableWeather?: () => void;
   onOpenSettings?: () => void;
 }

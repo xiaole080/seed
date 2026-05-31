@@ -101,7 +101,7 @@ interface AppState {
   nickname: string;
   schedule: Schedule;
   recordIds: string[];
-  /** じぶん画面で追加されたカスタム記録項目 (永続化対象) */
+  /** わたし画面で追加されたカスタム記録項目 (永続化対象) */
   customRecordItems: RecordPreset[];
   /**
    * 選択中の地域。schemaVersion 0.2.0 で `RegionId` から `SelectedRegion` に拡張。

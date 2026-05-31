@@ -12,7 +12,7 @@ const TABS: Tab[] = [
   { id: 'home', label: 'ホーム', icon: '🌱' },
   { id: 'log',  label: 'きろく', icon: '📔' },
   { id: 'care', label: 'ケア',   icon: '🌿' },
-  { id: 'me',   label: 'じぶん', icon: '🪺' },
+  { id: 'me',   label: 'わたし', icon: '🪺' },
 ];
 
 interface BottomTabsProps {

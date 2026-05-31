@@ -41,7 +41,7 @@ interface HomeScreenProps {
   /** 昨日分の記録 / 修正画面へ遷移 */
   onLogYesterday?: () => void;
   onOpenCheckIn?: () => void;
-  /** 天気を有効にする導線 (じぶん画面へ遷移) */
+  /** 天気を有効にする導線 (わたし画面へ遷移) */
   onEnableWeather?: () => void;
 }
 

@@ -76,7 +76,7 @@ export function RecordItemsSetupScreen({
           >
             えらんだものが「気分を記録」画面に出ます。
             <br />
-            あとから「じぶん」でも 増やせます。
+            あとから「わたし」でも 増やせます。
           </div>
         </div>
 

@@ -507,7 +507,7 @@ describe('App — 到達ステージの永続化 (記録がない日に卵に戻
       }),
     );
 
-    // 全データ削除 (じぶん画面 → 端末のデータを消す と同等)
+    // 全データ削除 (わたし画面 → 端末のデータを消す と同等)
     deleteAllLocalData();
     expect(localStorage.getItem('seed.app.state.v1')).toBeNull();
 

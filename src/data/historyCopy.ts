@@ -60,7 +60,7 @@ export const EMPTY_COPY = {
 
 // ── セクション見出し ────────────────────────────────────────
 export const SECTION_TITLE = {
-  mood: '気分の うつりかわり',
+  mood: '気分の 変化',
   influence: '最近、気分に関係していそうなこと',
   attendance: '通所のリズム',
   sleep: '睡眠のようす',

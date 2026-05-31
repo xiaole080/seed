@@ -75,7 +75,7 @@ export function AttendanceSetupScreen({
                 lineHeight: 1.7,
               }}
             >
-              あとから「じぶん」画面で
+              あとから「わたし」画面で
               <br />
               いつでも変えられます。
             </div>

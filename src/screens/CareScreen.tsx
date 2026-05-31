@@ -315,7 +315,7 @@ export function CareScreen({
         >
           達成できなくても、大丈夫。
           <br />
-          休んだ日も、関係性は後退しません。
+          休んだ日も、関係に影響はでません。
         </div>
         <div style={{ height: 80 }} />
       </div>
