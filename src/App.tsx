@@ -290,6 +290,28 @@ export default function App() {
   const streak    = useMemo(() => currentStreak(),    [storeTick, dateKey]);
   const stage     = deriveStage(streak, state.manualStage);
 
+  // バグ修正: 記録がない日が続いても、過去最大ステージを保持する。
+  // 到達した stage を manualStage に自動保存しておくことで、streak が 0 に
+  // なっても deriveStage が manualStage 由来の値を維持し、ステージが後退
+  // (= 卵に戻る) ことを防ぐ。
+  // localStorage への保存先や記録項目に変更はなく、外部送信もしない。
+  //
+  // 鳥ステージ・種別 後退防止の仕様 (docs/specs/bird-stage-no-regression.md):
+  //   - stage: この useEffect で manualStage を「単調増加」に保つことで後退防止。
+  //   - species (state.eggSpecies): EggCustomizeScreen での明示選択 (下記
+  //     phase === 'setup-egg' 分岐の update({ eggSpecies, ... })) と、
+  //     全データ削除 (onAllDataDeleted → setState(INITIAL_STATE)) 以外では
+  //     書き換わらない。既存仕様で後退経路が存在しないため、防御的 useEffect は
+  //     追加していない (将来の species 変更 UI 追加時の副作用源を避けるため)。
+  //     外部送信なし / 保存先変更なし。詳細は仕様書 §5・§10 参照。
+  useEffect(() => {
+    if (stage > state.manualStage) {
+      update({ manualStage: stage });
+    }
+    // update は setState ベースで安定。eslint deps はあえて stage / manualStage のみ。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, state.manualStage]);
+
   // 現在日 + ユーザの schedule から「今日のカード」を派生させる。
   // - state には固定値を持たない (T1: 旧 todayMode/todayBand 廃止)
   // - 実打刻時刻 (checkInTime / checkOutTime) は AttendanceMonthlyRecord から引く (T2)

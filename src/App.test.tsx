@@ -1,6 +1,6 @@
 // App の結合テスト: フェーズ遷移とルーティング、記録フローを通しで確認する。
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 
@@ -306,6 +306,220 @@ describe('App — 日付跨ぎ時の totalDays / streak 再計算 (バグ③)', 
     await user.click(screen.getByRole('button', { name: /ホーム/ }));
     await user.click(screen.getByRole('button', { name: /ケア/ }));
     expect(screen.getAllByText(/2\s*日/).length).toBeGreaterThan(0);
+
+    vi.useRealTimers();
+  });
+});
+
+// バグ修正 (Sprint 2026-05-31): 鳥のステージが「記録がない日に卵に戻る」問題への回帰テスト。
+//   deriveStage(streak, manualStage) で manualStage 由来分は維持されるが、
+//   manualStage の更新がどこからも行われていなかったため、streak が 0 になると
+//   毎回ステージが 0 (卵) に戻っていた。
+//   到達した stage を manualStage に自動保存することで、後退しないことを担保する。
+describe('App — 到達ステージの永続化 (記録がない日に卵に戻らない)', () => {
+  // localStorage の AppState を読む薄いヘルパ。
+  function readState(): Record<string, unknown> {
+    return JSON.parse(localStorage.getItem('seed.app.state.v1') ?? '{}');
+  }
+
+  // 連続 N 日分の最小限の DailyRecord を localStorage に書き込むヘルパ。
+  // baseDateISO を「今日」として、過去 N 日分を埋める。
+  function seedDailyForStreak(
+    baseDateISO: string,
+    days: number,
+  ): void {
+    const [by, bm, bd] = baseDateISO.split('-').map(Number);
+    const map: Record<string, unknown> = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(by, bm - 1, bd - i);
+      const p = (n: number) => String(n).padStart(2, '0');
+      const date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+      map[date] = {
+        localRecordId: `r_${date}`,
+        date,
+        mood: 3,
+        primaryInfluence: [],
+        missingness: {
+          noRecord: false,
+          skippedMood: false,
+          skippedPrimaryInfluence: true,
+          skippedSleep: true,
+          skippedMeal: true,
+          skippedExercise: true,
+          skippedCondition: true,
+          skippedMedication: true,
+          skippedAttendance: false,
+          skippedNote: true,
+        },
+        createdAt: `${date}T10:00:00.000Z`,
+        updatedAt: `${date}T10:00:00.000Z`,
+      };
+    }
+    localStorage.setItem('seed.daily.v1', JSON.stringify(map));
+  }
+
+  it('過去 3 日連続記録 (streak=3) で起動すると manualStage が 3 に引き上がる', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-31T10:00:00'));
+
+    // 5/29, 5/30, 5/31 の 3 日連続
+    seedDailyForStreak('2026-05-31', 3);
+    localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+
+    render(<App />);
+
+    await waitFor(() => {
+      const s = readState();
+      expect(s.manualStage).toBe(3);
+    });
+
+    vi.useRealTimers();
+  });
+
+  it('新規ユーザー (manualStage=0) で streak=2 のとき manualStage が 2 に永続化される', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-31T10:00:00'));
+
+    // 5/30, 5/31 の 2 日連続
+    seedDailyForStreak('2026-05-31', 2);
+    localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+
+    render(<App />);
+
+    await waitFor(() => {
+      const s = readState();
+      expect(s.manualStage).toBe(2);
+    });
+
+    vi.useRealTimers();
+  });
+
+  it('manualStage=3 で起動 → 記録がなく streak=0 でも manualStage は 3 のまま (卵に戻らない)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-31T10:00:00'));
+
+    // 記録なし (= streak=0)。state にだけ manualStage=3 を残しておく。
+    localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+    localStorage.setItem(
+      'seed.app.state.v1',
+      JSON.stringify({
+        nickname: 'はる',
+        manualStage: 3,
+      }),
+    );
+
+    render(<App />);
+
+    // 永続化サイクルが回っても manualStage は 3 を保つ
+    await waitFor(() => {
+      const s = readState();
+      expect(s.manualStage).toBe(3);
+    });
+    // 念のため少し待ってからも変わらないこと
+    const after = readState();
+    expect(after.manualStage).toBe(3);
+
+    vi.useRealTimers();
+  });
+
+  // AC1 (docs/specs/bird-stage-no-regression.md §3): 記録ゼロ件で起動した
+  // 新規ユーザーは卵 (stage=0) 表示で始まる。manualStage 自動更新 useEffect が
+  // 走っても、stage=0 / manualStage=0 のままで前進判定が動かないことを担保する。
+  it('AC1: 記録が一度もない状態でホームを表示すると鳥は卵 (stage=0) のまま', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-31T10:00:00'));
+
+    // phase=app だけ復元。daily / attendance / state は空 (= 初回ユーザー相当)。
+    localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+
+    render(<App />);
+
+    // ホームが描画されていること (CTA の存在で確認)
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /今日の様子を記録する/ }),
+      ).toBeInTheDocument();
+    });
+
+    // state.manualStage は 0 (= 卵) のまま据え置き。
+    // INITIAL_STATE.eggSpecies = 'chicken' が永続化されている。
+    await waitFor(() => {
+      const s = readState();
+      expect(s.manualStage).toBe(0);
+      expect(s.eggSpecies).toBe('chicken');
+    });
+
+    vi.useRealTimers();
+  });
+
+  // AC3 (docs/specs/bird-stage-no-regression.md §3): species 保持。
+  // 直前に若鳥 (Stage 3) ・ species='robin' で記録した状態から、
+  // 30 日後にアプリを再起動 (記録なし) しても、species と stage が後退しない。
+  it('AC3: eggSpecies=robin / manualStage=3 を保存後、30 日後に記録なしで再起動しても species と stage は保持される', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-31T10:00:00'));
+
+    // 直前の記録時点: 若鳥 (stage=3) かつ species='robin'
+    localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+    localStorage.setItem(
+      'seed.app.state.v1',
+      JSON.stringify({
+        nickname: 'はる',
+        manualStage: 3,
+        eggSpecies: 'robin',
+      }),
+    );
+    // daily は空のまま (= streak=0 / 30 日間記録なし相当)
+
+    // 30 日後にジャンプ
+    vi.setSystemTime(new Date('2026-06-30T10:00:00'));
+
+    render(<App />);
+
+    await waitFor(() => {
+      const s = readState();
+      // species は明示的に再選択されない限り後退しない
+      expect(s.eggSpecies).toBe('robin');
+      // stage も manualStage の単調増加 useEffect で 3 のまま据え置き
+      expect(s.manualStage).toBe(3);
+    });
+
+    vi.useRealTimers();
+  });
+
+  // AC6 (docs/specs/bird-stage-no-regression.md §3): 全データ削除で
+  // manualStage / eggSpecies が初期値に戻る。AppState を ProfileScreen → DataDeleteCard
+  // 経由で削除する代わりに、削除後の挙動を直接確認するため deleteAllLocalData を呼ぶ。
+  it('AC6: manualStage=3 / eggSpecies=quail を持つ状態で全データ削除すると、次回起動で卵 (stage=0) かつ eggSpecies が初期値 chicken に戻る', async () => {
+    const { deleteAllLocalData } = await import('./data/store');
+
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-05-31T10:00:00'));
+
+    // 直前状態: stage=3 / species='quail'
+    localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
+    localStorage.setItem(
+      'seed.app.state.v1',
+      JSON.stringify({
+        nickname: 'はる',
+        manualStage: 3,
+        eggSpecies: 'quail',
+      }),
+    );
+
+    // 全データ削除 (じぶん画面 → 端末のデータを消す と同等)
+    deleteAllLocalData();
+    expect(localStorage.getItem('seed.app.state.v1')).toBeNull();
+
+    // 次回起動相当: 新たに App を render
+    render(<App />);
+
+    // INITIAL_STATE で書き戻され、manualStage=0 (卵) / eggSpecies='chicken'
+    await waitFor(() => {
+      const s = readState();
+      expect(s.manualStage).toBe(0);
+      expect(s.eggSpecies).toBe('chicken');
+    });
 
     vi.useRealTimers();
   });

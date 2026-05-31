@@ -66,6 +66,11 @@
   `seed.clientId` / `seed.outbox.v1` / `seed.history.synced.v1` は本人の記録ではなく、
   共有時に Sheets 側ログとの突合リスクを上げるため対象外。
 
+### Sprint 2026-05-31 — 鳥ステージ・種別 後退防止
+
+- `src/App.tsx` の useEffect で `manualStage` を単調増加に保つことで、記録がない日が続いても鳥が卵に戻らないように修正（仕様書: [docs/specs/bird-stage-no-regression.md](docs/specs/bird-stage-no-regression.md)）
+- species は既存仕様で後退しないことを仕様書に明文化、回帰テスト追加
+
 ### Known Issues / Next Up
 
 次スプリント以降で扱う、今回のスプリントでは未着手の項目：
