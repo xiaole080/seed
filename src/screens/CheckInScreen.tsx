@@ -298,6 +298,11 @@ export function CheckInScreen({
             overflow: 'hidden',
             border: `1.5px solid ${c.soft}`,
             marginBottom: 18,
+            // 責任分界: スクロール領域(:228)は flex column かつ overflowY:auto。
+            // このカードは overflow:'hidden' を持つため flex の min-height が 0 に
+            // 解決され、短い viewport では「唯一潰せる子」として圧縮され帰宅行が
+            // 見切れていた。コンテンツは伸縮させず、超過分はスクロールに回す。
+            flexShrink: 0,
           }}
         >
           <div
@@ -430,7 +435,7 @@ export function CheckInScreen({
           </div>
         </div>
 
-        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+        <div style={{ textAlign: 'center', marginBottom: 16, flexShrink: 0 }}>
           <div
             style={{
               width: 92,
@@ -496,6 +501,7 @@ export function CheckInScreen({
               border: `1.5px solid ${PALETTE.sage}`,
               padding: 12,
               marginBottom: 12,
+              flexShrink: 0,
             }}
           >
             <div
@@ -567,10 +573,20 @@ export function CheckInScreen({
           </div>
         )}
 
+        {/* 責任分界: スクロール領域内で伸縮してよいのはこのスペーサーだけ。
+            他の中身ブロックは flexShrink:0 で自然高さを保ち、超過分は
+            overflowY:auto によるスクロールに回す (カード圧縮バグの再発防止)。 */}
         <div style={{ flex: 1 }} />
 
         {!isOff && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+              flexShrink: 0,
+            }}
+          >
             {s === 'before' && (
               <button
                 onClick={handleCheckIn}
@@ -930,7 +946,14 @@ export function CheckInScreen({
         )}
 
         {isOff && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+              flexShrink: 0,
+            }}
+          >
             {/* T6 メイン: お休みのままにする (ホームへ戻る) */}
             <button
               onClick={onBack}
@@ -987,6 +1010,7 @@ export function CheckInScreen({
             color: PALETTE.inkSoft,
             textAlign: 'center',
             lineHeight: 1.6,
+            flexShrink: 0,
           }}
         >
           この打刻は記録のためのものです。

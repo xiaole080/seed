@@ -71,6 +71,22 @@
 - `src/App.tsx` の useEffect で `manualStage` を単調増加に保つことで、記録がない日が続いても鳥が卵に戻らないように修正（仕様書: [docs/specs/bird-stage-no-regression.md](docs/specs/bird-stage-no-regression.md)）
 - species は既存仕様で後退しないことを仕様書に明文化、回帰テスト追加
 
+### Sprint 2026-06-05 — 打刻カード表示バグ修正
+
+- 打刻カード（CheckInScreen）で帰宅行が見切れる／状態変化でカード高さが縮んだように
+  見える表示バグを修正。真因は対症ではなく Flexbox の最小サイズ仕様：スクロール領域
+  （`flex column` かつ `overflowY:auto`）の中で、メインカードだけが `overflow:'hidden'`
+  を持つため flex の `min-height` が 0 に解決され、短い viewport では「唯一潰せる子」
+  として圧縮されていた。状態が進むほど兄弟要素（済バッジ・時刻レンジ・取消ボタン）が
+  増えて超過量が増し、カードがさらに縮んでいた。
+- 責任分界の修正：スクロール領域内で伸縮してよいのは下寄せ用スペーサー（`flex:1`）のみ
+  という方針を構造化し、カード／ヒーロー／ボタン群／フッターなど中身ブロックに
+  `flexShrink:0` を付与。これにより各ブロックは自然高さを保ち（帰宅行が常に表示）、
+  超過分は本来の `overflowY:auto` が実際にスクロールするようになった。固定 height や
+  padding 当て・PhoneShell の overflow 変更といった対症療法は行っていない。
+- 回帰テスト追加：CheckInScreen の before / checkedIn / checkedOut の 3 状態で
+  「到着」「帰宅」両行が必ず DOM に存在することを確認（`interactions.test.tsx`）。
+
 ### Known Issues / Next Up
 
 次スプリント以降で扱う、今回のスプリントでは未着手の項目：

@@ -368,6 +368,26 @@ describe('CheckInScreen', () => {
     expect(onCheckIn).toHaveBeenCalledOnce();
   });
 
+  // 回帰: 短い viewport でメインカードが flex 圧縮され帰宅行が見切れていたバグ
+  // (overflow:hidden による flex min-height→0)。jsdom は実寸を測れないため
+  // レイアウト圧縮そのものは再現できないが、せめて 3 状態すべてで到着・帰宅の
+  // 両行が DOM から消えていないことを保証し、行の削除リグレッションを止める。
+  it.each(['before', 'checkedIn', 'checkedOut'] as const)(
+    'カードの「到着」「帰宅」両行が state=%s で必ず表示される (帰宅行見切れ回帰)',
+    (state) => {
+      const t: TodayCard = {
+        mode: 'office',
+        band: 'full',
+        dayLabel: '月',
+        checkInTime: '09:42',
+        checkOutTime: '15:08',
+      };
+      render(<CheckInScreen today={t} state={state} />);
+      expect(screen.getByText('到着')).toBeInTheDocument();
+      expect(screen.getByText('帰宅')).toBeInTheDocument();
+    },
+  );
+
   it('お休みの日は「お休みのままにする」と「やっぱり通所する」の2ボタンが出る (T6 / T4-A)', () => {
     const offToday: TodayCard = { mode: 'off', band: 'full', dayLabel: '土' };
     render(<CheckInScreen today={offToday} state="before" />);
