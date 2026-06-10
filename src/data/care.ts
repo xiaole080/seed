@@ -11,21 +11,75 @@ import {
 } from './routines';
 
 export const DEFAULT_GOALS: Goal[] = [
-  { id: 'g1', icon: '🌙', text: '23時までに ふとんに入る', kind: 'sleep',    progress: 5, target: 7, active: true },
-  { id: 'g2', icon: '💧', text: '朝、コップ1杯のお水',     kind: 'meal',     progress: 7, target: 7, active: true },
-  { id: 'g3', icon: '🚶', text: '週に2回 5分の散歩',       kind: 'exercise', progress: 1, target: 2, active: true },
+  {
+    id: 'g1',
+    icon: '🌙',
+    text: '23時までに ふとんに入る',
+    kind: 'sleep',
+    progress: 5,
+    target: 7,
+    active: true,
+  },
+  {
+    id: 'g2',
+    icon: '💧',
+    text: '朝、コップ1杯のお水',
+    kind: 'meal',
+    progress: 7,
+    target: 7,
+    active: true,
+  },
+  {
+    id: 'g3',
+    icon: '🚶',
+    text: '週に2回 5分の散歩',
+    kind: 'exercise',
+    progress: 1,
+    target: 2,
+    active: true,
+  },
 ];
 
 export const DEFAULT_TASKS: UserTask[] = [
-  { id: 't1', name: '朝、窓を開ける',           impact: 'basic',  done: true,  createdAt: new Date('2026-04-30') },
-  { id: 't2', name: '夕方、5分のストレッチ',     impact: 'effort', done: false, createdAt: new Date('2026-05-01') },
-  { id: 't3', name: '湯ぶねに ゆっくりつかる',   impact: 'effort', done: false, createdAt: new Date('2026-05-02') },
+  {
+    id: 't1',
+    name: '朝、窓を開ける',
+    impact: 'basic',
+    done: true,
+    createdAt: new Date('2026-04-30'),
+  },
+  {
+    id: 't2',
+    name: '夕方、5分のストレッチ',
+    impact: 'effort',
+    done: false,
+    createdAt: new Date('2026-05-01'),
+  },
+  {
+    id: 't3',
+    name: '湯ぶねに ゆっくりつかる',
+    impact: 'effort',
+    done: false,
+    createdAt: new Date('2026-05-02'),
+  },
 ];
 
 export const WHISPERS: Whisper[] = [
-  { tone: 'gentle', text: 'おはよう。\n今日も、いてくれてありがとう。',                     from: 'morning' },
-  { tone: 'cheer',  text: '昨日、よく眠れたみたいですね。\nそのリズム、大切にしましょう。', from: 'sleep' },
-  { tone: 'soft',   text: 'うまくいかない日は、\nふかく息をはくだけで じゅうぶん。',       from: 'rest' },
+  {
+    tone: 'gentle',
+    text: 'おはよう。\n今日も、いてくれてありがとう。',
+    from: 'morning',
+  },
+  {
+    tone: 'cheer',
+    text: '昨日、よく眠れたみたいですね。\nそのリズム、大切にしましょう。',
+    from: 'sleep',
+  },
+  {
+    tone: 'soft',
+    text: 'うまくいかない日は、\nふかく息をはくだけで じゅうぶん。',
+    from: 'rest',
+  },
 ];
 
 // ── ケアの目標 (localStorage 永続化) ──────────────────────────

@@ -15,10 +15,10 @@ describe('searchPlaces — 同意の二重防衛', () => {
     vi.stubGlobal('fetch', spy);
 
     await expect(
-      searchPlaces('台東', { consent: 'notAsked' }),
+      searchPlaces('台東', { consent: 'notAsked' })
     ).rejects.toMatchObject({ kind: 'consentRequired' });
     await expect(
-      searchPlaces('台東', { consent: 'declined' }),
+      searchPlaces('台東', { consent: 'declined' })
     ).rejects.toMatchObject({ kind: 'consentRequired' });
 
     expect(spy).not.toHaveBeenCalled();
@@ -29,7 +29,7 @@ describe('searchPlaces — URL 構築', () => {
   it('count=10, language=ja, countryCode=JP, name=<input> でクエリを組む', async () => {
     const spy = vi.fn(
       async (_url: string, _init?: RequestInit): Promise<Response> =>
-        mockJsonResponse({ results: [] }),
+        mockJsonResponse({ results: [] })
     );
     vi.stubGlobal('fetch', spy);
 
@@ -39,7 +39,7 @@ describe('searchPlaces — URL 構築', () => {
     const firstArg = spy.mock.calls[0][0];
     const url = new URL(firstArg);
     expect(url.origin + url.pathname).toBe(
-      'https://geocoding-api.open-meteo.com/v1/search',
+      'https://geocoding-api.open-meteo.com/v1/search'
     );
     expect(url.searchParams.get('name')).toBe('台東区');
     expect(url.searchParams.get('count')).toBe('10');
@@ -50,7 +50,7 @@ describe('searchPlaces — URL 構築', () => {
   it('独自 header を付けない (識別情報を載せない)', async () => {
     const spy = vi.fn(
       async (_url: string, _init?: RequestInit): Promise<Response> =>
-        mockJsonResponse({ results: [] }),
+        mockJsonResponse({ results: [] })
     );
     vi.stubGlobal('fetch', spy);
 
@@ -90,7 +90,7 @@ describe('searchPlaces — 結果のフィルタ', () => {
             longitude: -97.0,
           },
         ],
-      }),
+      })
     );
 
     const out = await searchPlaces('台東', { consent: 'accepted' });
@@ -126,7 +126,7 @@ describe('searchPlaces — 結果のフィルタ', () => {
             longitude: 135.5025,
           },
         ],
-      }),
+      })
     );
 
     const out = await searchPlaces('q', { consent: 'accepted' });
@@ -150,7 +150,7 @@ describe('searchPlaces — 結果のフィルタ', () => {
           { name: 'B', country_code: 'JP', latitude: 'x', longitude: 2 }, // bad
           { country_code: 'JP', latitude: 1, longitude: 2 }, // missing name
         ],
-      }),
+      })
     );
     const out = await searchPlaces('q', { consent: 'accepted' });
     expect(out).toHaveLength(1);
@@ -164,7 +164,7 @@ describe('searchPlaces — URL の機微語監査 (QA)', () => {
   it('URL に nickname / clientId / note / 健康データ語が一切混ざらない', async () => {
     const spy = vi.fn(
       async (_url: string, _init?: RequestInit): Promise<Response> =>
-        mockJsonResponse({ results: [] }),
+        mockJsonResponse({ results: [] })
     );
     vi.stubGlobal('fetch', spy);
 
@@ -206,7 +206,7 @@ describe('searchPlaces — エラー', () => {
       throw new TypeError('Failed to fetch');
     });
     await expect(
-      searchPlaces('q', { consent: 'accepted' }),
+      searchPlaces('q', { consent: 'accepted' })
     ).rejects.toMatchObject({ kind: 'network' });
   });
 
@@ -215,31 +215,39 @@ describe('searchPlaces — エラー', () => {
       throw new DOMException('aborted', 'AbortError');
     });
     await expect(
-      searchPlaces('q', { consent: 'accepted' }),
+      searchPlaces('q', { consent: 'accepted' })
     ).rejects.toMatchObject({ kind: 'aborted' });
   });
 
   it('non-2xx → kind=network', async () => {
-    vi.stubGlobal('fetch', async () =>
-      ({ ok: false, status: 500, json: async () => ({}) }) as unknown as Response,
+    vi.stubGlobal(
+      'fetch',
+      async () =>
+        ({
+          ok: false,
+          status: 500,
+          json: async () => ({}),
+        }) as unknown as Response
     );
     await expect(
-      searchPlaces('q', { consent: 'accepted' }),
+      searchPlaces('q', { consent: 'accepted' })
     ).rejects.toMatchObject({ kind: 'network' });
   });
 
   it('JSON パース失敗 → kind=invalidResponse', async () => {
-    vi.stubGlobal('fetch', async () =>
-      ({
-        ok: true,
-        status: 200,
-        json: async () => {
-          throw new SyntaxError('bad json');
-        },
-      }) as unknown as Response,
+    vi.stubGlobal(
+      'fetch',
+      async () =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => {
+            throw new SyntaxError('bad json');
+          },
+        }) as unknown as Response
     );
     await expect(
-      searchPlaces('q', { consent: 'accepted' }),
+      searchPlaces('q', { consent: 'accepted' })
     ).rejects.toMatchObject({ kind: 'invalidResponse' });
   });
 

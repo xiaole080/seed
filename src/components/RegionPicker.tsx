@@ -72,36 +72,36 @@ export function RegionPicker({
           gap: 6,
         }}
       >
-        {(Object.entries(REGIONS) as [RegionId, typeof REGIONS[RegionId]][]).map(
-          ([id, r]) => {
-            const sel = id === selectedPreset;
-            return (
-              <button
-                key={id}
-                onClick={() => onChange?.({ kind: 'preset', presetId: id })}
-                style={{
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: sel ? PALETTE.sageDeep : PALETTE.sageSoft,
-                  color: sel ? '#fff' : PALETTE.ink,
-                  padding: '8px 4px',
-                  borderRadius: 10,
-                  fontSize: 11,
-                  fontFamily: ROUNDED_FONT,
-                  fontWeight: sel ? 700 : 600,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 2,
-                  transition: 'all .12s',
-                }}
-              >
-                <span style={{ fontSize: 14 }}>{r.icon}</span>
-                <span>{r.label}</span>
-              </button>
-            );
-          },
-        )}
+        {(
+          Object.entries(REGIONS) as [RegionId, (typeof REGIONS)[RegionId]][]
+        ).map(([id, r]) => {
+          const sel = id === selectedPreset;
+          return (
+            <button
+              key={id}
+              onClick={() => onChange?.({ kind: 'preset', presetId: id })}
+              style={{
+                border: 'none',
+                cursor: 'pointer',
+                background: sel ? PALETTE.sageDeep : PALETTE.sageSoft,
+                color: sel ? '#fff' : PALETTE.ink,
+                padding: '8px 4px',
+                borderRadius: 10,
+                fontSize: 11,
+                fontFamily: ROUNDED_FONT,
+                fontWeight: sel ? 700 : 600,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+                transition: 'all .12s',
+              }}
+            >
+              <span style={{ fontSize: 14 }}>{r.icon}</span>
+              <span>{r.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {onSearchMore && (

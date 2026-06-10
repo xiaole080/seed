@@ -92,7 +92,7 @@ function restoreSelections(rec: StoredDailyRecord | undefined): SelectionMap {
 
 /** initialRecord から各セクションの otherText を復元 */
 function restoreOtherTexts(
-  rec: StoredDailyRecord | undefined,
+  rec: StoredDailyRecord | undefined
 ): Record<string, string> {
   if (!rec) return {};
   const out: Record<string, string> = {};
@@ -118,23 +118,25 @@ export function MoodLogScreen({
 
   const [mood, setMood] = useState<Mood>(initialRecord?.mood ?? initialMood);
   const [influences, setInfluences] = useState<Set<PrimaryInfluence>>(
-    () => new Set(initialRecord?.primaryInfluence ?? []),
+    () => new Set(initialRecord?.primaryInfluence ?? [])
   );
   const [influenceOtherText, setInfluenceOtherText] = useState<string>(
-    initialRecord?.influenceOtherText ?? '',
+    initialRecord?.influenceOtherText ?? ''
   );
 
   // 仕様 §2.2 — 「もっと記録する？」トグル。
   // 修正時は既存データがあるので最初から開いておく。
   const [showMore, setShowMore] = useState<boolean>(isEdit);
 
-  const [sel, setSel] = useState<SelectionMap>(() => restoreSelections(initialRecord));
+  const [sel, setSel] = useState<SelectionMap>(() =>
+    restoreSelections(initialRecord)
+  );
   const [open, setOpen] = useState<string | null>(null);
   const [note, setNote] = useState<string>(initialRecord?.note ?? '');
   // 各カテゴリの「その他」自由入力。キーはカテゴリID (sleep/meal/exercise/condition/meds)
-  const [sectionOtherTexts, setSectionOtherTexts] = useState<Record<string, string>>(
-    () => restoreOtherTexts(initialRecord),
-  );
+  const [sectionOtherTexts, setSectionOtherTexts] = useState<
+    Record<string, string>
+  >(() => restoreOtherTexts(initialRecord));
 
   // 画面タイトル (T8)
   const screenTitle = todayMode
@@ -148,7 +150,7 @@ export function MoodLogScreen({
 
   const enabledCategories = useMemo<Category[]>(
     () => CATEGORIES.filter((c) => enabledCategoryIds.includes(c.id)),
-    [enabledCategoryIds],
+    [enabledCategoryIds]
   );
 
   const toggleInfluence = (id: PrimaryInfluence) => {
@@ -209,14 +211,12 @@ export function MoodLogScreen({
         if (o) parts.push(o.label);
       } else if (sec.type === 'multi' && v instanceof Set && v.size) {
         const labels =
-          sec.options
-            ?.filter((o) => v.has(o.id))
-            .map((o) => o.label) ?? [];
+          sec.options?.filter((o) => v.has(o.id)).map((o) => o.label) ?? [];
         if (labels.length) {
           parts.push(
             labels.length <= 2
               ? labels.join('・')
-              : `${labels[0]} ほか${labels.length - 1}`,
+              : `${labels[0]} ほか${labels.length - 1}`
           );
         }
       } else if (sec.type === 'time' && typeof v === 'string') {
@@ -530,7 +530,8 @@ export function MoodLogScreen({
               const hasOtherSelected = cat.sections.some((sec) => {
                 const v = sel[keyOf(cat, sec)];
                 if (sec.type === 'single') return v === 'other';
-                if (sec.type === 'multi' && v instanceof Set) return v.has('other');
+                if (sec.type === 'multi' && v instanceof Set)
+                  return v.has('other');
                 return false;
               });
               return (
@@ -568,7 +569,9 @@ export function MoodLogScreen({
                         width: 36,
                         height: 36,
                         borderRadius: 12,
-                        background: filled ? PALETTE.sageDeep : PALETTE.sageSoft,
+                        background: filled
+                          ? PALETTE.sageDeep
+                          : PALETTE.sageSoft,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -580,7 +583,11 @@ export function MoodLogScreen({
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
-                        style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 700,
+                          lineHeight: 1.3,
+                        }}
                       >
                         {catLabel}
                       </div>
@@ -654,7 +661,10 @@ export function MoodLogScreen({
                         <OtherTextField
                           value={sectionOtherTexts[cat.id] ?? ''}
                           onChange={(v) =>
-                            setSectionOtherTexts((prev) => ({ ...prev, [cat.id]: v }))
+                            setSectionOtherTexts((prev) => ({
+                              ...prev,
+                              [cat.id]: v,
+                            }))
                           }
                           placeholder="その他、気になったこと"
                         />

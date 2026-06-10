@@ -87,7 +87,8 @@ export function addRoutine(input: {
     id: `r_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     text: trimmed,
     frequency: input.frequency,
-    weekdays: input.frequency === 'weekdays' ? input.weekdays ?? [] : undefined,
+    weekdays:
+      input.frequency === 'weekdays' ? (input.weekdays ?? []) : undefined,
     paused: false,
     createdAt: now,
   };
@@ -110,14 +111,14 @@ export function updateRoutine(id: string, patch: Partial<Routine>): void {
     safePatch.frequency = patch.frequency;
   if (Array.isArray(patch.weekdays))
     safePatch.weekdays = patch.weekdays.filter(
-      (n): n is number => typeof n === 'number' && n >= 0 && n <= 6,
+      (n): n is number => typeof n === 'number' && n >= 0 && n <= 6
     );
   if (typeof patch.paused === 'boolean') safePatch.paused = patch.paused;
 
   const list = loadRoutines();
   const now = new Date().toISOString();
   saveRoutines(
-    list.map((r) => (r.id === id ? { ...r, ...safePatch, updatedAt: now } : r)),
+    list.map((r) => (r.id === id ? { ...r, ...safePatch, updatedAt: now } : r))
   );
 }
 
@@ -150,7 +151,7 @@ function saveRoutineLogs(logs: RoutineLog): void {
 export function setRoutineLog(
   routineId: string,
   date: string,
-  state: 'done' | 'rest',
+  state: 'done' | 'rest'
 ): void {
   // L-2: 想定外の状態値が localStorage に書き込まれないよう防御。
   if (state !== 'done' && state !== 'rest') return;
@@ -181,7 +182,7 @@ export function clearRoutineLog(routineId: string, date: string): void {
 export function isRoutineActiveOn(
   routine: Routine,
   date: string,
-  schedule: Schedule,
+  schedule: Schedule
 ): boolean {
   if (routine.frequency === 'daily') return true;
   if (routine.frequency === 'weekdays') {
@@ -246,7 +247,7 @@ export function updateOneOffTask(id: string, patch: Partial<OneOffTask>): void {
   const list = loadOneOffTasks();
   const now = new Date().toISOString();
   saveOneOffTasks(
-    list.map((t) => (t.id === id ? { ...t, ...patch, updatedAt: now } : t)),
+    list.map((t) => (t.id === id ? { ...t, ...patch, updatedAt: now } : t))
   );
 }
 

@@ -50,11 +50,11 @@ https://<your-github-account>.github.io/seed/
 
 PC ブラウザで開いた後、Chrome DevTools のモバイルエミュレーションで以下 3 サイズを確認することを推奨します。
 
-| 端末名         | width × height |
-| -------------- | -------------- |
-| iPhone SE      | 375 × 667      |
-| iPhone 12 Pro  | 390 × 844      |
-| Pixel 7 / 5    | 412 × 915      |
+| 端末名        | width × height |
+| ------------- | -------------- |
+| iPhone SE     | 375 × 667      |
+| iPhone 12 Pro | 390 × 844      |
+| Pixel 7 / 5   | 412 × 915      |
 
 詳細手順は [`docs/mobile-check/README.md`](docs/mobile-check/README.md) を参照。
 

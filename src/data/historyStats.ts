@@ -101,7 +101,7 @@ export function monthsInRange(range: DateRange): string[] {
 /** 期間内の日別記録だけを日付昇順で返す */
 export function filterDailyByRange(
   records: StoredDailyRecord[],
-  range: DateRange,
+  range: DateRange
 ): StoredDailyRecord[] {
   return records
     .filter((r) => inRange(r.date, range))
@@ -111,7 +111,7 @@ export function filterDailyByRange(
 /** 期間内の通所記録だけを日付昇順で返す (重複日は後勝ちで1件に集約) */
 export function filterAttendanceByRange(
   records: AttendanceMonthlyRecord[],
-  range: DateRange,
+  range: DateRange
 ): AttendanceMonthlyRecord[] {
   const byDate: Record<string, AttendanceMonthlyRecord> = {};
   for (const r of records) {
@@ -169,7 +169,7 @@ export interface InfluenceCount {
  * 頻度降順、同数は最初に出現した順 (安定ソート)。
  */
 export function influenceRanking(
-  records: StoredDailyRecord[],
+  records: StoredDailyRecord[]
 ): InfluenceCount[] {
   const counts: Record<string, number> = {};
   const order: PrimaryInfluence[] = [];
@@ -209,7 +209,7 @@ export interface AttendanceDay {
  * 「欠席」「休んだ」と断定せず、打刻欠落は 'unclocked' とする。
  */
 export function classifyAttendance(
-  rec: AttendanceMonthlyRecord,
+  rec: AttendanceMonthlyRecord
 ): AttendanceDayStatus {
   const planned = rec.plannedMode ?? 'off';
   const hasActual =
@@ -230,7 +230,7 @@ export interface AttendanceSummary {
 
 /** 期間内の通所レコードを状態分類してまとめる */
 export function attendanceSummary(
-  records: AttendanceMonthlyRecord[],
+  records: AttendanceMonthlyRecord[]
 ): AttendanceSummary {
   const days: AttendanceDay[] = records
     .slice()
@@ -258,7 +258,7 @@ export function attendanceSummary(
 
 /** 汎用: 文字列配列の頻度を降順で集計 (安定ソート) */
 export function frequency<T extends string>(
-  values: T[],
+  values: T[]
 ): { id: T; count: number }[] {
   const counts: Record<string, number> = {};
   const order: T[] = [];
@@ -371,9 +371,7 @@ export interface MedicationStats {
  * 服薬の傾向集計。medicationStatus の分布のみ。
  * 薬名・用量などは StoredDailyRecord に存在せず、ここでも扱わない。
  */
-export function medicationStats(
-  records: StoredDailyRecord[],
-): MedicationStats {
+export function medicationStats(records: StoredDailyRecord[]): MedicationStats {
   const withMed = records.filter((r) => r.medication != null);
   const statuses: MedicationStatus[] = [];
   for (const r of withMed) {
@@ -398,7 +396,7 @@ export interface RangeOverview {
 /** サマリー文の選択に使う、期間全体の軽い指標をまとめて返す */
 export function rangeOverview(
   daily: StoredDailyRecord[],
-  attendance: AttendanceMonthlyRecord[],
+  attendance: AttendanceMonthlyRecord[]
 ): RangeOverview {
   const series = moodSeries(daily);
   const att = attendanceSummary(attendance);

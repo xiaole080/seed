@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  MOODS,
-  PRIMARY_INFLUENCES,
-  CATEGORIES,
-  CATEGORY_BY_ID,
-} from './moods';
+import { MOODS, PRIMARY_INFLUENCES, CATEGORIES, CATEGORY_BY_ID } from './moods';
 
 describe('MOODS', () => {
   it('5 段階の気分が定義されている (仕様 §2.3)', () => {

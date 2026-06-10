@@ -99,7 +99,7 @@ describe('migrations.runMigrations — 各バージョン', () => {
           createdAt: '2026-05-23T00:00:00.000Z',
           updatedAt: '2026-05-23T00:00:00.000Z',
         },
-      }),
+      })
     );
 
     runMigrations();
@@ -126,7 +126,9 @@ describe('migrations.runMigrations — 各バージョン', () => {
     runMigrations();
 
     expect(getStoredSchemaVersion()).toBe('0.3.0');
-    const next = JSON.parse(localStorage.getItem(CONSENT_KEY) ?? '{}') as ConsentState;
+    const next = JSON.parse(
+      localStorage.getItem(CONSENT_KEY) ?? '{}'
+    ) as ConsentState;
     expect(next.weatherApiConsent).toBe('notAsked');
     expect(next.consentVersion).toBe('v1.1');
     // 既存値は維持
@@ -201,9 +203,13 @@ describe('migrations.runMigrations — 各バージョン', () => {
           },
         ],
         concernGoals: [
-          { id: 'cg_1', text: '本屋に行く', createdAt: '2026-05-22T00:00:00.000Z' },
+          {
+            id: 'cg_1',
+            text: '本屋に行く',
+            createdAt: '2026-05-22T00:00:00.000Z',
+          },
         ],
-      }),
+      })
     );
 
     runMigrations();
@@ -211,9 +217,7 @@ describe('migrations.runMigrations — 各バージョン', () => {
     expect(getStoredSchemaVersion()).toBe('0.3.0');
 
     // smallGoals は空配列で上書きされる
-    const care = JSON.parse(
-      localStorage.getItem('seed.care.goals.v1') ?? '{}',
-    );
+    const care = JSON.parse(localStorage.getItem('seed.care.goals.v1') ?? '{}');
     expect(care.smallGoals).toEqual([]);
     // concernGoals は保持される
     expect(care.concernGoals).toHaveLength(1);
@@ -221,7 +225,7 @@ describe('migrations.runMigrations — 各バージョン', () => {
 
     // OneOffTask[] に移行される
     const oneoff = JSON.parse(
-      localStorage.getItem('seed.tasks.oneoff.v1') ?? '[]',
+      localStorage.getItem('seed.tasks.oneoff.v1') ?? '[]'
     );
     expect(oneoff).toHaveLength(2);
     expect(oneoff[0].id).toBe('sg_1');
@@ -253,13 +257,13 @@ describe('migrations.runMigrations — 各バージョン', () => {
           null,
         ],
         concernGoals: [],
-      }),
+      })
     );
 
     expect(() => runMigrations()).not.toThrow();
     expect(getStoredSchemaVersion()).toBe('0.3.0');
     const oneoff = JSON.parse(
-      localStorage.getItem('seed.tasks.oneoff.v1') ?? '[]',
+      localStorage.getItem('seed.tasks.oneoff.v1') ?? '[]'
     );
     expect(oneoff).toHaveLength(1);
     expect(oneoff[0].id).toBe('sg_ok');
@@ -272,9 +276,13 @@ describe('migrations.runMigrations — 各バージョン', () => {
       JSON.stringify({
         smallGoals: [],
         concernGoals: [
-          { id: 'cg_1', text: '気になること', createdAt: '2026-05-22T00:00:00.000Z' },
+          {
+            id: 'cg_1',
+            text: '気になること',
+            createdAt: '2026-05-22T00:00:00.000Z',
+          },
         ],
-      }),
+      })
     );
 
     runMigrations();
@@ -282,9 +290,7 @@ describe('migrations.runMigrations — 各バージョン', () => {
     expect(getStoredSchemaVersion()).toBe('0.3.0');
     // 既存 oneoff キーは作らない (smallGoals が空 → 何も移行しない)
     expect(localStorage.getItem('seed.tasks.oneoff.v1')).toBeNull();
-    const care = JSON.parse(
-      localStorage.getItem('seed.care.goals.v1') ?? '{}',
-    );
+    const care = JSON.parse(localStorage.getItem('seed.care.goals.v1') ?? '{}');
     expect(care.concernGoals).toHaveLength(1);
   });
 

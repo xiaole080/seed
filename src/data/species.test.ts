@@ -8,7 +8,11 @@ import {
 
 describe('BIRD_SPECIES', () => {
   it('3 種 (にわとり/こまどり/うずら)', () => {
-    expect(BIRD_SPECIES.map((s) => s.id)).toEqual(['chicken', 'robin', 'quail']);
+    expect(BIRD_SPECIES.map((s) => s.id)).toEqual([
+      'chicken',
+      'robin',
+      'quail',
+    ]);
   });
 });
 

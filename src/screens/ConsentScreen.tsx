@@ -17,11 +17,11 @@ interface ConsentScreenProps {
 export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
   const [agreed, setAgreed] = useState(false);
   const [optInBackup, setOptInBackup] = useState(
-    consent.attendanceBackupConsent === 'accepted',
+    consent.attendanceBackupConsent === 'accepted'
   );
   // 天気API は既定 OFF (パターンB)。ユーザがチェックした場合のみ accepted。
   const [optInWeather, setOptInWeather] = useState(
-    consent.weatherApiConsent === 'accepted',
+    consent.weatherApiConsent === 'accepted'
   );
 
   const submit = () => {
@@ -70,9 +70,8 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
               lineHeight: 1.7,
             }}
           >
-            このアプリは「あなたの きもち と からだ を
-            やさしく ふりかえる」ためのものです。
-            医療的な診断はしません。
+            このアプリは「あなたの きもち と からだ を やさしく
+            ふりかえる」ためのものです。 医療的な診断はしません。
           </div>
         </div>
 
@@ -112,8 +111,8 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
             個人名・施設名・第三者を特定できる情報は、なるべく書かないでください。
           </Line>
           <Line icon="🌦️">
-            天気を表示するときは、おおよその位置（小数第2位の緯度経度）
-            だけを Open-Meteo に送ります。体調・自由記述・服薬は送りません。
+            天気を表示するときは、おおよその位置（小数第2位の緯度経度） だけを
+            Open-Meteo に送ります。体調・自由記述・服薬は送りません。
           </Line>
         </Section>
 
@@ -262,9 +261,7 @@ export function ConsentScreen({ consent, onAccept }: ConsentScreenProps) {
             fontSize: 15,
             fontWeight: 700,
             fontFamily: ROUNDED_FONT,
-            boxShadow: agreed
-              ? '0 6px 16px rgba(127,169,130,0.32)'
-              : 'none',
+            boxShadow: agreed ? '0 6px 16px rgba(127,169,130,0.32)' : 'none',
             cursor: agreed ? 'pointer' : 'default',
             flexShrink: 0,
           }}

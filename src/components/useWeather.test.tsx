@@ -35,7 +35,7 @@ describe('useWeather — 同意未取得', () => {
     vi.stubGlobal('fetch', spy);
 
     const { result } = renderHook(() =>
-      useWeather({ region: TOKYO, consent: 'notAsked' }),
+      useWeather({ region: TOKYO, consent: 'notAsked' })
     );
 
     expect(result.current.kind).toBe('optedOut');
@@ -46,7 +46,7 @@ describe('useWeather — 同意未取得', () => {
     const spy = vi.fn();
     vi.stubGlobal('fetch', spy);
     const { result } = renderHook(() =>
-      useWeather({ region: TOKYO, consent: 'declined' }),
+      useWeather({ region: TOKYO, consent: 'declined' })
     );
     expect(result.current.kind).toBe('optedOut');
     expect(spy).not.toHaveBeenCalled();
@@ -76,7 +76,7 @@ describe('useWeather — debounce + fetch', () => {
     vi.stubGlobal('fetch', spy);
 
     const { result } = renderHook(() =>
-      useWeather({ region: TOKYO, consent: 'accepted' }),
+      useWeather({ region: TOKYO, consent: 'accepted' })
     );
 
     expect(result.current.kind).toBe('loading');
@@ -95,14 +95,14 @@ describe('useWeather — debounce + fetch', () => {
   it('連続変更時は前リクエストを abort して最後の region のみ fetch', async () => {
     const spy = vi.fn(
       async (_url: string, _init?: RequestInit): Promise<Response> =>
-        mockOk(DEFAULT_BODY),
+        mockOk(DEFAULT_BODY)
     );
     vi.stubGlobal('fetch', spy);
 
     const { result, rerender } = renderHook(
       ({ region }: { region: SelectedRegion }) =>
         useWeather({ region, consent: 'accepted' }),
-      { initialProps: { region: TOKYO } },
+      { initialProps: { region: TOKYO } }
     );
 
     // 300ms 待たずに地域を切り替える: 東京の debounce タイマーは破棄される
@@ -138,7 +138,7 @@ describe('useWeather — キャッシュ', () => {
     vi.stubGlobal('fetch', spy);
 
     const { result } = renderHook(() =>
-      useWeather({ region: TOKYO, consent: 'accepted' }),
+      useWeather({ region: TOKYO, consent: 'accepted' })
     );
 
     expect(result.current.kind).toBe('ready');
@@ -161,7 +161,7 @@ describe('useWeather — オフラインフォールバック (§3.4)', () => {
         pressure: 1011,
         trend: 'stable',
       },
-      Date.now() - 2 * 60 * 60 * 1000, // 2 時間前
+      Date.now() - 2 * 60 * 60 * 1000 // 2 時間前
     );
 
     vi.stubGlobal('fetch', async () => {
@@ -169,7 +169,7 @@ describe('useWeather — オフラインフォールバック (§3.4)', () => {
     });
 
     const { result } = renderHook(() =>
-      useWeather({ region: TOKYO, consent: 'accepted' }),
+      useWeather({ region: TOKYO, consent: 'accepted' })
     );
 
     await act(async () => {
@@ -185,7 +185,7 @@ describe('useWeather — オフラインフォールバック (§3.4)', () => {
     });
 
     const { result } = renderHook(() =>
-      useWeather({ region: TOKYO, consent: 'accepted' }),
+      useWeather({ region: TOKYO, consent: 'accepted' })
     );
 
     await act(async () => {
@@ -208,11 +208,11 @@ describe('useWeather — アンマウント', () => {
         // 永遠に解決しない
         await new Promise(() => undefined);
         return mockOk(DEFAULT_BODY);
-      },
+      }
     );
 
     const { unmount } = renderHook(() =>
-      useWeather({ region: TOKYO, consent: 'accepted' }),
+      useWeather({ region: TOKYO, consent: 'accepted' })
     );
 
     await act(async () => {

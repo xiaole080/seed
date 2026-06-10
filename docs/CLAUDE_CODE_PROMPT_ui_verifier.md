@@ -11,11 +11,13 @@
 Vitest（jsdom）で 236 件グリーンだが、**打刻画面（CheckInScreen）の表示バグが何度直しても再発している**。
 
 原因の仮説：
+
 - 現状のテストは jsdom なので、CSS レイアウト崩れ・要素のはみ出し・キーボード被り・safe-area の欠落といった「実ブラウザで初めて見えるバグ」を構造的に検出できない。
 - frontend-engineer は「最小差分実装」ルールのため、対症療法を当てがちで根本原因に行かない。
 - 同じ箇所が直っては壊れている履歴を CHANGELOG から拾う仕組みがない。
 
 このプロンプトのゴールは2つ：
+
 1. `.claude/agents/` に **ui-verifier** と **bug-investigator** の2つを追加し、CLAUDE.md のフローを更新する
 2. 追加した ui-verifier / bug-investigator を実際に使って、現在の打刻画面の表示バグを再現・原因特定・修正する
 
@@ -36,6 +38,7 @@ Vitest（jsdom）で 236 件グリーンだが、**打刻画面（CheckInScreen�
 - `CHANGELOG.md`（打刻まわりで過去にどんな修正が入ったか）
 
 そのうえで、**ユーザーに次の3点を聞く**：
+
 1. 打刻画面のどの状態で表示が崩れますか？（未打刻 / 出勤打刻済 / 帰宅打刻済 / 同日2回目押下時）
 2. 端末 / ブラウザ / 画面幅は？（iPhone SE 実機？ Chrome DevTools の 375 設定？）
 3. どう崩れますか？（ボタンが消える / 重なる / はみ出す / タップできない / キーボードで隠れる など）
@@ -50,7 +53,7 @@ Vitest（jsdom）で 236 件グリーンだが、**打刻画面（CheckInScreen�
 
 #### 2-1. `.claude/agents/ui-verifier.md` を新規作成（中身を一字一句このとおりに）
 
-````markdown
+```markdown
 ---
 name: ui-verifier
 description: 画面表示・レイアウト・モバイル対応の実機相当の検証を行うときに使う。Vitest（jsdom）では検出できない CSS 崩れ・要素のはみ出し・キーボード被り・スクロール不能・safe-area の欠落などを、Playwright で実ブラウザに描画してスクリーンショットで確認する。表示・レイアウト・タップ領域・viewport に関わる変更が入ったら、frontend-engineer の直後に必ず起動する。コードは原則変更しない（テスト・スクショ・調査メモのみ）。
@@ -103,7 +106,7 @@ color: purple
 - 健康データを含む画面でも、テスト用の testerId と固定 seed を使うこと。本物の localStorage に書かない
 - localhost への接続のみ。外部送信のテストは privacy-reviewer の担当
 - スクショに自由記述のサンプル文字列を入れない（実テスターの記録と紛れる原因になる）
-````
+```
 
 #### 2-2. `.claude/agents/bug-investigator.md` を新規作成
 
@@ -240,7 +243,7 @@ export default defineConfig({
   projects: [
     { name: 'iPhone SE', use: { ...devices['iPhone SE'] } },
     { name: 'iPhone 13', use: { ...devices['iPhone 13'] } },
-    { name: 'Pixel 5',   use: { ...devices['Pixel 5'] } },
+    { name: 'Pixel 5', use: { ...devices['Pixel 5'] } },
   ],
 });
 ```

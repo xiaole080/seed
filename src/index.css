@@ -8,10 +8,11 @@ body,
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Yu Gothic',
-    system-ui, sans-serif;
+  font-family:
+    'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Yu Gothic', system-ui,
+    sans-serif;
   background: #f0eee9;
-  color: #2F3A2F;
+  color: #2f3a2f;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
@@ -39,7 +40,7 @@ body,
   height: min(100vh, 780px);
   max-width: 390px;
   max-height: 780px;
-  background: #FBF7EE;
+  background: #fbf7ee;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12);
   border-radius: min(28px, 1vw);
   overflow: hidden;
@@ -81,16 +82,37 @@ body,
 }
 
 @keyframes seed-breath {
-  0%, 100% { transform: scale(1) translateY(0); }
-  50%      { transform: scale(1.04) translateY(-2px); }
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.04) translateY(-2px);
+  }
 }
 @keyframes seed-twinkle {
-  0%, 100% { opacity: 0.2; transform: scale(0.8); }
-  50%      { opacity: 1;   transform: scale(1.2); }
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 @keyframes seed-hop {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25%      { transform: translateY(-12px) rotate(-4deg); }
-  50%      { transform: translateY(0) rotate(0deg); }
-  75%      { transform: translateY(-6px) rotate(4deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-12px) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(0) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-6px) rotate(4deg);
+  }
 }

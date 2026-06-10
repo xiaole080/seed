@@ -32,7 +32,7 @@ const EXPORT_EXCLUDE_KEYS: ReadonlySet<string> = new Set([
 ]);
 
 export function collectSeedLocalStorage(
-  storage: Pick<Storage, 'length' | 'key' | 'getItem'> = localStorage,
+  storage: Pick<Storage, 'length' | 'key' | 'getItem'> = localStorage
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (let i = 0; i < storage.length; i++) {
@@ -52,7 +52,7 @@ export function collectSeedLocalStorage(
 
 export function buildExportEnvelope(
   storage?: Pick<Storage, 'length' | 'key' | 'getItem'>,
-  now: Date = new Date(),
+  now: Date = new Date()
 ): JsonExportEnvelope {
   const data = collectSeedLocalStorage(storage);
   const schemaVersion =
@@ -70,7 +70,7 @@ export function buildExportEnvelope(
 export function exportFilename(now: Date = new Date()): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `seed-export-${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(
-    now.getDate(),
+    now.getDate()
   )}.json`;
 }
 

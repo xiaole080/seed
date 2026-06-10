@@ -123,8 +123,22 @@ export function HatchingSVG({
         </g>
       )}
 
-      <ellipse cx="30" cy="60" rx="6" ry="9" fill={s.bodyDark} transform="rotate(-25 30 60)" />
-      <ellipse cx="70" cy="60" rx="6" ry="9" fill={s.bodyDark} transform="rotate(25 70 60)" />
+      <ellipse
+        cx="30"
+        cy="60"
+        rx="6"
+        ry="9"
+        fill={s.bodyDark}
+        transform="rotate(-25 30 60)"
+      />
+      <ellipse
+        cx="70"
+        cy="60"
+        rx="6"
+        ry="9"
+        fill={s.bodyDark}
+        transform="rotate(25 70 60)"
+      />
 
       <circle cx="36" cy="56" r="3.4" fill={s.cheek} opacity="0.7" />
       <circle cx="64" cy="56" r="3.4" fill={s.cheek} opacity="0.7" />
@@ -211,13 +225,34 @@ export function ChickSVG({
         </g>
       )}
 
-      <ellipse cx="28" cy="80" rx="8" ry="14" fill={s.bodyDark} transform="rotate(-12 28 80)" />
-      <ellipse cx="82" cy="80" rx="8" ry="14" fill={s.bodyDark} transform="rotate(12 82 80)" />
+      <ellipse
+        cx="28"
+        cy="80"
+        rx="8"
+        ry="14"
+        fill={s.bodyDark}
+        transform="rotate(-12 28 80)"
+      />
+      <ellipse
+        cx="82"
+        cy="80"
+        rx="8"
+        ry="14"
+        fill={s.bodyDark}
+        transform="rotate(12 82 80)"
+      />
 
       <circle cx="55" cy="46" r="26" fill={s.body} />
 
       {species === 'quail' && (
-        <ellipse cx="55" cy="22" rx="2" ry="5" fill={s.bodyDark} transform="rotate(-10 55 22)" />
+        <ellipse
+          cx="55"
+          cy="22"
+          rx="2"
+          ry="5"
+          fill={s.bodyDark}
+          transform="rotate(-10 55 22)"
+        />
       )}
 
       <circle cx="38" cy="52" r="4.5" fill={s.cheek} opacity="0.7" />
@@ -258,9 +293,13 @@ export function BirdSpeciesStage({
   const inner = size * 0.62;
   let figure;
   if (stage === 0) {
-    figure = <EggSpeciesSVG species={species} cracked={false} size={inner * 0.85} />;
+    figure = (
+      <EggSpeciesSVG species={species} cracked={false} size={inner * 0.85} />
+    );
   } else if (stage === 1) {
-    figure = <EggSpeciesSVG species={species} cracked={true} size={inner * 0.85} />;
+    figure = (
+      <EggSpeciesSVG species={species} cracked={true} size={inner * 0.85} />
+    );
   } else if (stage === 2) {
     figure = <HatchingSVG species={species} size={inner} />;
   } else {

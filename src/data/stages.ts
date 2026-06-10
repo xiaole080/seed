@@ -29,7 +29,7 @@ export const STAGE_COPY: Record<Stage, string> = {
 };
 
 const STAGE_KEYS = ['egg', 'crack', 'chick', 'bird'] as const;
-type StageKey = typeof STAGE_KEYS[number];
+type StageKey = (typeof STAGE_KEYS)[number];
 
 export const STAGE_WHISPERS: Record<StageKey, string[]> = {
   egg: [
@@ -88,11 +88,11 @@ export function dailyWhisperFor(stage: Stage, longForm = false): string {
 }
 
 export const MILESTONES: Milestone[] = [
-  { days: 0,   label: 'はじめまして',         next: 7 },
-  { days: 7,   label: 'すこし慣れた仲',       next: 30 },
-  { days: 30,  label: 'いつもの友達',         next: 100 },
-  { days: 100, label: '相棒',                 next: 365 },
-  { days: 365, label: 'かけがえのない存在',   next: null },
+  { days: 0, label: 'はじめまして', next: 7 },
+  { days: 7, label: 'すこし慣れた仲', next: 30 },
+  { days: 30, label: 'いつもの友達', next: 100 },
+  { days: 100, label: '相棒', next: 365 },
+  { days: 365, label: 'かけがえのない存在', next: null },
 ];
 
 export function getMilestone(days: number): Milestone {

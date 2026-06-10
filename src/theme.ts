@@ -1,14 +1,14 @@
 // Seed design palette and shared visual tokens.
 // Mirrors the SEED_PALETTE used in the Claude Design prototype.
 export const PALETTE = {
-  cream:     '#F7F2E7',
+  cream: '#F7F2E7',
   creamSoft: '#FBF7EE',
-  sage:      '#C7DCC2',
-  sageSoft:  '#E3EDDC',
-  sageDeep:  '#7FA982',
-  inkSoft:   '#5A6A5C',
-  ink:       '#2F3A2F',
-  amber:     '#E8B873',
+  sage: '#C7DCC2',
+  sageSoft: '#E3EDDC',
+  sageDeep: '#7FA982',
+  inkSoft: '#5A6A5C',
+  ink: '#2F3A2F',
+  amber: '#E8B873',
   amberSoft: '#F5DDB0',
   shellPink: '#F4D9CC',
 } as const;

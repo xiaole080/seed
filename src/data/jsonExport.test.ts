@@ -20,15 +20,24 @@ beforeEach(() => {
 
 describe('collectSeedLocalStorage', () => {
   it('seed.* のキーだけを集める', () => {
-    localStorage.setItem('seed.app.state.v1', JSON.stringify({ nickname: 'aaa' }));
-    localStorage.setItem('seed.daily.v1', JSON.stringify({ '2026-05-23': { mood: 4 } }));
+    localStorage.setItem(
+      'seed.app.state.v1',
+      JSON.stringify({ nickname: 'aaa' })
+    );
+    localStorage.setItem(
+      'seed.daily.v1',
+      JSON.stringify({ '2026-05-23': { mood: 4 } })
+    );
     localStorage.setItem('other-app.key', JSON.stringify({ foo: 1 }));
 
     const out = collectSeedLocalStorage();
-    expect(Object.keys(out).sort()).toEqual(
-      ['seed.app.state.v1', 'seed.daily.v1'],
+    expect(Object.keys(out).sort()).toEqual([
+      'seed.app.state.v1',
+      'seed.daily.v1',
+    ]);
+    expect((out['seed.app.state.v1'] as { nickname: string }).nickname).toBe(
+      'aaa'
     );
-    expect((out['seed.app.state.v1'] as { nickname: string }).nickname).toBe('aaa');
   });
 
   it('非 JSON の値はそのまま文字列として残す', () => {
@@ -46,23 +55,36 @@ describe('collectSeedLocalStorage', () => {
 describe('buildExportEnvelope', () => {
   it('schemaVersion / exportedAt / data が入る', () => {
     localStorage.setItem('seed.schema.version', JSON.stringify('0.1.0'));
-    localStorage.setItem('seed.daily.v1', JSON.stringify({ '2026-05-23': { mood: 4 } }));
-    const env = buildExportEnvelope(undefined, new Date('2026-05-23T10:00:00.000Z'));
+    localStorage.setItem(
+      'seed.daily.v1',
+      JSON.stringify({ '2026-05-23': { mood: 4 } })
+    );
+    const env = buildExportEnvelope(
+      undefined,
+      new Date('2026-05-23T10:00:00.000Z')
+    );
     expect(env.schemaVersion).toBe('0.1.0');
     expect(env.exportedAt).toBe('2026-05-23T10:00:00.000Z');
     expect(env.data['seed.daily.v1']).toEqual({ '2026-05-23': { mood: 4 } });
   });
 
   it('schema.version 未設定なら 0.0.0', () => {
-    const env = buildExportEnvelope(undefined, new Date('2026-05-23T10:00:00.000Z'));
+    const env = buildExportEnvelope(
+      undefined,
+      new Date('2026-05-23T10:00:00.000Z')
+    );
     expect(env.schemaVersion).toBe('0.0.0');
   });
 });
 
 describe('exportFilename', () => {
   it('YYYY-MM-DD でゼロ埋めされる', () => {
-    expect(exportFilename(new Date(2026, 4, 9))).toBe('seed-export-2026-05-09.json');
-    expect(exportFilename(new Date(2026, 11, 31))).toBe('seed-export-2026-12-31.json');
+    expect(exportFilename(new Date(2026, 4, 9))).toBe(
+      'seed-export-2026-05-09.json'
+    );
+    expect(exportFilename(new Date(2026, 11, 31))).toBe(
+      'seed-export-2026-12-31.json'
+    );
   });
 });
 
@@ -87,9 +109,12 @@ describe('buildExportEnvelope — 自由記述のエッジケース', () => {
           createdAt: '2026-05-23T00:00:00.000Z',
           updatedAt: '2026-05-23T00:00:00.000Z',
         },
-      }),
+      })
     );
-    const env = buildExportEnvelope(undefined, new Date('2026-05-23T10:00:00.000Z'));
+    const env = buildExportEnvelope(
+      undefined,
+      new Date('2026-05-23T10:00:00.000Z')
+    );
     // envelope を JSON シリアライズ → パース しても note が壊れない
     const json = JSON.stringify(env);
     const parsed = JSON.parse(json);
@@ -101,13 +126,21 @@ describe('buildExportEnvelope — 自由記述のエッジケース', () => {
     localStorage.setItem(
       'seed.daily.v1',
       JSON.stringify({
-        '2026-05-23': { note: long, mood: 3, primaryInfluence: [], date: '2026-05-23' },
-      }),
+        '2026-05-23': {
+          note: long,
+          mood: 3,
+          primaryInfluence: [],
+          date: '2026-05-23',
+        },
+      })
     );
-    const env = buildExportEnvelope(undefined, new Date('2026-05-23T10:00:00.000Z'));
-    const stored = (env.data['seed.daily.v1'] as Record<string, { note: string }>)[
-      '2026-05-23'
-    ];
+    const env = buildExportEnvelope(
+      undefined,
+      new Date('2026-05-23T10:00:00.000Z')
+    );
+    const stored = (
+      env.data['seed.daily.v1'] as Record<string, { note: string }>
+    )['2026-05-23'];
     expect(stored.note.length).toBe(50_000);
   });
 
@@ -116,7 +149,10 @@ describe('buildExportEnvelope — 自由記述のエッジケース', () => {
     localStorage.setItem('_ym_uid', '0987');
     localStorage.setItem('other-app.private', 'secret');
     localStorage.setItem('seed.daily.v1', JSON.stringify({}));
-    const env = buildExportEnvelope(undefined, new Date('2026-05-23T10:00:00.000Z'));
+    const env = buildExportEnvelope(
+      undefined,
+      new Date('2026-05-23T10:00:00.000Z')
+    );
     const keys = Object.keys(env.data);
     for (const k of keys) {
       expect(k.startsWith('seed.')).toBe(true);
@@ -132,7 +168,10 @@ describe('buildExportEnvelope — 自由記述のエッジケース', () => {
 describe('collectSeedLocalStorage — 端末識別子と内部キーの除外 (P-3)', () => {
   it('seed.clientId はエクスポート対象から外す', () => {
     localStorage.setItem('seed.clientId', JSON.stringify('client-xyz'));
-    localStorage.setItem('seed.daily.v1', JSON.stringify({ '2026-05-23': { mood: 3 } }));
+    localStorage.setItem(
+      'seed.daily.v1',
+      JSON.stringify({ '2026-05-23': { mood: 3 } })
+    );
     const out = collectSeedLocalStorage();
     expect(out).not.toHaveProperty('seed.clientId');
     expect(out).toHaveProperty('seed.daily.v1');
@@ -141,7 +180,7 @@ describe('collectSeedLocalStorage — 端末識別子と内部キーの除外 (P
   it('seed.outbox.v1 (未送信ペイロード) はエクスポート対象から外す', () => {
     localStorage.setItem(
       'seed.outbox.v1',
-      JSON.stringify([{ kind: 'mood', payload: { mood: 3 } }]),
+      JSON.stringify([{ kind: 'mood', payload: { mood: 3 } }])
     );
     localStorage.setItem('seed.daily.v1', JSON.stringify({}));
     const out = collectSeedLocalStorage();
@@ -160,7 +199,10 @@ describe('collectSeedLocalStorage — 端末識別子と内部キーの除外 (P
     localStorage.setItem('seed.outbox.v1', JSON.stringify([]));
     localStorage.setItem('seed.history.synced.v1', JSON.stringify(true));
     localStorage.setItem('seed.daily.v1', JSON.stringify({}));
-    const env = buildExportEnvelope(undefined, new Date('2026-05-23T10:00:00.000Z'));
+    const env = buildExportEnvelope(
+      undefined,
+      new Date('2026-05-23T10:00:00.000Z')
+    );
     const keys = Object.keys(env.data);
     expect(keys).not.toContain('seed.clientId');
     expect(keys).not.toContain('seed.outbox.v1');

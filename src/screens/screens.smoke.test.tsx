@@ -33,7 +33,9 @@ function expectRendered(node: ReturnType<typeof render>) {
 
 describe('画面スモークテスト — クラッシュせず描画される', () => {
   it('ConsentScreen', () => {
-    expectRendered(render(<ConsentScreen consent={consent} onAccept={() => {}} />));
+    expectRendered(
+      render(<ConsentScreen consent={consent} onAccept={() => {}} />)
+    );
   });
 
   it('LoginScreen', () => {
@@ -82,13 +84,13 @@ describe('画面スモークテスト — クラッシュせず描画される',
 
   it('RegionSearchScreen (同意未取得)', () => {
     expectRendered(
-      render(<RegionSearchScreen consent="notAsked" onPick={() => {}} />),
+      render(<RegionSearchScreen consent="notAsked" onPick={() => {}} />)
     );
   });
 
   it('RegionSearchScreen (同意済み)', () => {
     expectRendered(
-      render(<RegionSearchScreen consent="accepted" onPick={() => {}} />),
+      render(<RegionSearchScreen consent="accepted" onPick={() => {}} />)
     );
   });
 });

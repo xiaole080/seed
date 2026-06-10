@@ -1,7 +1,21 @@
 # seed
 
+[![CI](https://github.com/xiaole080/seed/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaole080/seed/actions/workflows/ci.yml)
+
+**seed** is a local-first self-care app for users of Japanese employment-transition support (就労移行支援). People log their mood, sleep, medication, and clinic attendance in a few taps, and an on-screen bird gently reacts — built around the principle "we don't blame you for an off day." Health data stays on the device by default and any export is strictly opt-in. Tech: React 18 + Vite + TypeScript, Tailwind CSS v3, tested with Vitest + Testing Library, deployed to GitHub Pages.
+
+🔗 **Live demo:** https://xiaole080.github.io/seed/
+
 就労移行支援の利用者向けセルフケアアプリ MVP。
 体調を記録すると、画面の鳥が反応する設計を目指します。
+
+## スクリーンショット
+
+| ホーム                            | 気分の記録                            | 通所打刻                               |
+| --------------------------------- | ------------------------------------- | -------------------------------------- |
+| ![ホーム画面](docs/images/home.png) | ![気分の記録画面](docs/images/record.png) | ![通所打刻画面](docs/images/checkin.png) |
+
+> 画像はプレースホルダーです（後日 `docs/images/` に差し替え）。
 
 ## 技術スタック
 
@@ -35,6 +49,8 @@ npm run coverage      # カバレッジ付きで実行
 
 ## テスト
 
+push / pull_request ごとに `lint → test → build` を GitHub Actions（`.github/workflows/ci.yml`）で実行します（バッジはタイトル直下）。
+
 Vitest + Testing Library。テストは対象ファイルの隣に `*.test.ts(x)` で置いています。
 
 - **データ/ロジック層**（`src/data` ほぼ100%カバー）— 記録の保存・連続日数・Missingness・通所CSV・気分マッパなど
@@ -43,6 +59,18 @@ Vitest + Testing Library。テストは対象ファイルの隣に `*.test.ts(x)
 
 テストは実ネットワークへ出ません。`vitest.config.ts` で `VITE_SHEETS_ENDPOINT` を空に固定し、
 `src/test/setup.ts` の既定 `fetch` は通信を試みると即失敗します（通信するテストは `vi.stubGlobal` で明示スタブ）。
+
+## プライバシー設計
+
+機微な健康データを扱うため、設計の前提を以下に置いています。
+
+- **ローカルファースト**: 気分・睡眠・服薬・通所記録などの健康データは端末の `localStorage` に保存し、端末上のデータを「真実」とします。
+- **自由記述は外部に出さない**: 自由記述（`note`）やその他欄は外部送信ペイロードに構造的に含めません。これは `src/api/sheets.test.ts` の「自由記述 note を外部送信しない（§13.8）」テストで担保しています。
+- **送信はオプトイン**: Google Sheets 連携は任意です。利用者が同意・設定した場合のみ、気分の概要と通所打刻だけを送信し、送信前に内容を確認できます。
+
+## 開発プロセス
+
+Claude Code の subagent を使い、**product-manager → frontend-engineer → qa-tester → privacy-reviewer** の順で開発フローを回しています（仕様の分解 → 最小差分の実装 → lint/build/test とエッジケース確認 → 個人データ取り扱いの監査）。仕様書は `docs/specs/` に置いています。
 
 ## デザイン方針
 
@@ -86,12 +114,12 @@ Vitest + Testing Library。テストは対象ファイルの隣に `*.test.ts(x)
 
 GAS 側が初回の書き込みで以下のタブを自動で作ります。
 
-| タブ              | 何が入るか                    |
-| ----------------- | ----------------------------- |
-| `mood_logs`       | 気分の記録 (mood + カテゴリ + ひとこと) |
-| `attendance`      | 通所打刻・帰宅打刻              |
-| `tasks`           | ちいさな目標の達成 / 解除       |
-| `settings_changes`| ニックネーム・地域などの変更    |
+| タブ               | 何が入るか                              |
+| ------------------ | --------------------------------------- |
+| `mood_logs`        | 気分の記録 (mood + カテゴリ + ひとこと) |
+| `attendance`       | 通所打刻・帰宅打刻                      |
+| `tasks`            | ちいさな目標の達成 / 解除               |
+| `settings_changes` | ニックネーム・地域などの変更            |
 
 ### セキュリティ
 

@@ -18,11 +18,7 @@ import {
   updateOneOffTask,
   updateRoutine,
 } from './routines';
-import {
-  ROUTINES_KEY,
-  ROUTINE_LOGS_KEY,
-  ONEOFF_TASKS_KEY,
-} from './store';
+import { ROUTINES_KEY, ROUTINE_LOGS_KEY, ONEOFF_TASKS_KEY } from './store';
 import { DEFAULT_SCHEDULE } from './attendance';
 import type { Schedule } from './types';
 

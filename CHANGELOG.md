@@ -43,19 +43,19 @@
 
 ### Storage keys
 
-| キー                       | 用途                              | 備考                  |
-| -------------------------- | --------------------------------- | --------------------- |
-| `seed.schema.version`      | スキーマバージョン (新設 0.1.0)   | 起動時に migrations が読み書き |
-| `seed.daily.v1`            | 日別 DailyRecord                  | `targetDateType` を追加 |
-| `seed.attendance.v1`       | 通所打刻                          | 変更なし              |
-| `seed.app.state.v1`        | アプリ状態 (nickname など)        | 変更なし              |
-| `seed.app.phase.v1`        | 起動フェーズ                      | 変更なし              |
-| `seed.consent.v1`          | 同意状態                          | 変更なし              |
-| `seed.care.goals.v1`       | ケアの目標                        | 変更なし              |
-| `seed.egg`                 | 卵カスタマイズ                    | 変更なし              |
-| `seed.outbox.v1`           | 送信失敗キュー                    | 変更なし              |
-| `seed.clientId`            | クライアント識別子                | 変更なし              |
-| `seed.history.synced.v1`   | 履歴シード済みフラグ              | 変更なし              |
+| キー                     | 用途                            | 備考                           |
+| ------------------------ | ------------------------------- | ------------------------------ |
+| `seed.schema.version`    | スキーマバージョン (新設 0.1.0) | 起動時に migrations が読み書き |
+| `seed.daily.v1`          | 日別 DailyRecord                | `targetDateType` を追加        |
+| `seed.attendance.v1`     | 通所打刻                        | 変更なし                       |
+| `seed.app.state.v1`      | アプリ状態 (nickname など)      | 変更なし                       |
+| `seed.app.phase.v1`      | 起動フェーズ                    | 変更なし                       |
+| `seed.consent.v1`        | 同意状態                        | 変更なし                       |
+| `seed.care.goals.v1`     | ケアの目標                      | 変更なし                       |
+| `seed.egg`               | 卵カスタマイズ                  | 変更なし                       |
+| `seed.outbox.v1`         | 送信失敗キュー                  | 変更なし                       |
+| `seed.clientId`          | クライアント識別子              | 変更なし                       |
+| `seed.history.synced.v1` | 履歴シード済みフラグ            | 変更なし                       |
 
 ### Privacy
 

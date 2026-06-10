@@ -20,10 +20,10 @@ describe('fetchWeather — 同意の二重防衛', () => {
     vi.stubGlobal('fetch', spy);
 
     await expect(
-      fetchWeather(35.69, 139.69, { consent: 'notAsked' }),
+      fetchWeather(35.69, 139.69, { consent: 'notAsked' })
     ).rejects.toMatchObject({ kind: 'consentRequired' });
     await expect(
-      fetchWeather(35.69, 139.69, { consent: 'declined' }),
+      fetchWeather(35.69, 139.69, { consent: 'declined' })
     ).rejects.toMatchObject({ kind: 'consentRequired' });
 
     expect(spy).not.toHaveBeenCalled();
@@ -43,7 +43,7 @@ describe('fetchWeather — URL 構築', () => {
           hourly: {
             surface_pressure: [1010, 1011, 1012, 1013, 1013, 1013, 1013],
           },
-        }),
+        })
     );
     vi.stubGlobal('fetch', spy);
 
@@ -51,13 +51,13 @@ describe('fetchWeather — URL 構築', () => {
 
     const url = new URL(spy.mock.calls[0][0]);
     expect(url.origin + url.pathname).toBe(
-      'https://api.open-meteo.com/v1/forecast',
+      'https://api.open-meteo.com/v1/forecast'
     );
     // 二重防衛: roundCoord で小数第2位に丸まる
     expect(url.searchParams.get('latitude')).toBe('35.69');
     expect(url.searchParams.get('longitude')).toBe('139.69');
     expect(url.searchParams.get('current')).toBe(
-      'temperature_2m,weather_code,surface_pressure',
+      'temperature_2m,weather_code,surface_pressure'
     );
     expect(url.searchParams.get('hourly')).toBe('surface_pressure');
     expect(url.searchParams.get('timezone')).toBe('Asia/Tokyo');
@@ -73,7 +73,7 @@ describe('fetchWeather — URL 構築', () => {
             weather_code: 0,
             surface_pressure: 1013,
           },
-        }),
+        })
     );
     vi.stubGlobal('fetch', spy);
 
@@ -96,7 +96,7 @@ describe('fetchWeather — レスポンスのマッピング', () => {
           // 末尾 1012, 3つ前 1010.5 → 差 +1.5 → up
           surface_pressure: [1009, 1009.5, 1010, 1010.5, 1011, 1011.5, 1012],
         },
-      }),
+      })
     );
 
     const snap = await fetchWeather(35.69, 139.69, { consent: 'accepted' });
@@ -110,10 +110,10 @@ describe('fetchWeather — レスポンスのマッピング', () => {
 
   it('current のキーが欠けたら invalidResponse', async () => {
     vi.stubGlobal('fetch', async () =>
-      mockJsonResponse({ current: { temperature_2m: 22 } }),
+      mockJsonResponse({ current: { temperature_2m: 22 } })
     );
     await expect(
-      fetchWeather(35.69, 139.69, { consent: 'accepted' }),
+      fetchWeather(35.69, 139.69, { consent: 'accepted' })
     ).rejects.toMatchObject({ kind: 'invalidResponse' });
   });
 
@@ -125,7 +125,7 @@ describe('fetchWeather — レスポンスのマッピング', () => {
           weather_code: 0,
           surface_pressure: 1013,
         },
-      }),
+      })
     );
     const snap = await fetchWeather(35.69, 139.69, { consent: 'accepted' });
     expect(snap.trend).toBe('stable');
@@ -138,7 +138,7 @@ describe('fetchWeather — エラー', () => {
       throw new TypeError('Failed to fetch');
     });
     await expect(
-      fetchWeather(35.69, 139.69, { consent: 'accepted' }),
+      fetchWeather(35.69, 139.69, { consent: 'accepted' })
     ).rejects.toMatchObject({ kind: 'network' });
   });
 
@@ -147,31 +147,39 @@ describe('fetchWeather — エラー', () => {
       throw new DOMException('aborted', 'AbortError');
     });
     await expect(
-      fetchWeather(35.69, 139.69, { consent: 'accepted' }),
+      fetchWeather(35.69, 139.69, { consent: 'accepted' })
     ).rejects.toMatchObject({ kind: 'aborted' });
   });
 
   it('non-2xx → kind=network', async () => {
-    vi.stubGlobal('fetch', async () =>
-      ({ ok: false, status: 500, json: async () => ({}) }) as unknown as Response,
+    vi.stubGlobal(
+      'fetch',
+      async () =>
+        ({
+          ok: false,
+          status: 500,
+          json: async () => ({}),
+        }) as unknown as Response
     );
     await expect(
-      fetchWeather(35.69, 139.69, { consent: 'accepted' }),
+      fetchWeather(35.69, 139.69, { consent: 'accepted' })
     ).rejects.toMatchObject({ kind: 'network' });
   });
 
   it('JSON パース失敗 → kind=invalidResponse', async () => {
-    vi.stubGlobal('fetch', async () =>
-      ({
-        ok: true,
-        status: 200,
-        json: async () => {
-          throw new SyntaxError('bad json');
-        },
-      }) as unknown as Response,
+    vi.stubGlobal(
+      'fetch',
+      async () =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => {
+            throw new SyntaxError('bad json');
+          },
+        }) as unknown as Response
     );
     await expect(
-      fetchWeather(35.69, 139.69, { consent: 'accepted' }),
+      fetchWeather(35.69, 139.69, { consent: 'accepted' })
     ).rejects.toMatchObject({ kind: 'invalidResponse' });
   });
 
@@ -190,8 +198,12 @@ describe('fetchWeather — URL の機微語監査 (QA)', () => {
     const spy = vi.fn(
       async (_url: string, _init?: RequestInit): Promise<Response> =>
         mockJsonResponse({
-          current: { temperature_2m: 22, weather_code: 0, surface_pressure: 1013 },
-        }),
+          current: {
+            temperature_2m: 22,
+            weather_code: 0,
+            surface_pressure: 1013,
+          },
+        })
     );
     vi.stubGlobal('fetch', spy);
 
@@ -250,22 +262,31 @@ describe('mapWeatherCode', () => {
 describe('computeTrendFromHourly', () => {
   it('+1 hPa 以上で up', () => {
     expect(
-      computeTrendFromHourly({ surface_pressure: [1010, 1010, 1010, 1011.5] }, 1011.5),
+      computeTrendFromHourly(
+        { surface_pressure: [1010, 1010, 1010, 1011.5] },
+        1011.5
+      )
     ).toBe('up');
   });
   it('-1 hPa 以下で down', () => {
     expect(
-      computeTrendFromHourly({ surface_pressure: [1013, 1013, 1012, 1011] }, 1011),
+      computeTrendFromHourly(
+        { surface_pressure: [1013, 1013, 1012, 1011] },
+        1011
+      )
     ).toBe('down');
   });
   it('変化が小さければ stable', () => {
     expect(
-      computeTrendFromHourly({ surface_pressure: [1013, 1013, 1013, 1013.2] }, 1013.2),
+      computeTrendFromHourly(
+        { surface_pressure: [1013, 1013, 1013, 1013.2] },
+        1013.2
+      )
     ).toBe('stable');
   });
   it('データが足りなければ stable', () => {
     expect(computeTrendFromHourly({ surface_pressure: [1013] }, 1013)).toBe(
-      'stable',
+      'stable'
     );
     expect(computeTrendFromHourly(undefined, 1013)).toBe('stable');
   });

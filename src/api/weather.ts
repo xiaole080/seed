@@ -64,7 +64,7 @@ export interface FetchWeatherOptions {
 export async function fetchWeather(
   lat: number,
   lon: number,
-  opts: FetchWeatherOptions,
+  opts: FetchWeatherOptions
 ): Promise<WeatherSnapshot> {
   if (opts.consent !== 'accepted') {
     throw new WeatherError('consentRequired');
@@ -77,7 +77,10 @@ export async function fetchWeather(
   const url = new URL(ENDPOINT);
   url.searchParams.set('latitude', String(rLat));
   url.searchParams.set('longitude', String(rLon));
-  url.searchParams.set('current', 'temperature_2m,weather_code,surface_pressure');
+  url.searchParams.set(
+    'current',
+    'temperature_2m,weather_code,surface_pressure'
+  );
   url.searchParams.set('hourly', 'surface_pressure');
   url.searchParams.set('timezone', 'Asia/Tokyo');
   url.searchParams.set('past_hours', '6');
@@ -140,16 +143,21 @@ export function mapWeatherCode(code: number): { cond: string; icon: string } {
   if (code === 2) return { cond: 'はれ時々くもり', icon: '⛅' };
   if (code === 3) return { cond: 'くもり', icon: '☁️' };
   if (code === 45 || code === 48) return { cond: 'きり', icon: '🌫️' };
-  if (code === 51 || code === 53 || code === 55) return { cond: 'きりさめ', icon: '🌦️' };
+  if (code === 51 || code === 53 || code === 55)
+    return { cond: 'きりさめ', icon: '🌦️' };
   if (code === 56 || code === 57) return { cond: 'こおりさめ', icon: '🌧️' };
-  if (code === 61 || code === 63 || code === 65) return { cond: 'あめ', icon: '🌧️' };
+  if (code === 61 || code === 63 || code === 65)
+    return { cond: 'あめ', icon: '🌧️' };
   if (code === 66 || code === 67) return { cond: 'こおりあめ', icon: '🌧️' };
-  if (code === 71 || code === 73 || code === 75) return { cond: 'ゆき', icon: '🌨️' };
+  if (code === 71 || code === 73 || code === 75)
+    return { cond: 'ゆき', icon: '🌨️' };
   if (code === 77) return { cond: 'こなゆき', icon: '🌨️' };
-  if (code === 80 || code === 81 || code === 82) return { cond: 'にわか雨', icon: '🌦️' };
+  if (code === 80 || code === 81 || code === 82)
+    return { cond: 'にわか雨', icon: '🌦️' };
   if (code === 85 || code === 86) return { cond: 'にわか雪', icon: '🌨️' };
   if (code === 95) return { cond: 'かみなり', icon: '⛈️' };
-  if (code === 96 || code === 99) return { cond: 'かみなり (ひょう)', icon: '⛈️' };
+  if (code === 96 || code === 99)
+    return { cond: 'かみなり (ひょう)', icon: '⛈️' };
   return { cond: '—', icon: '☁️' };
 }
 
@@ -161,11 +169,11 @@ export function mapWeatherCode(code: number): { cond: string; icon: string } {
  */
 export function computeTrendFromHourly(
   hourly: RawHourly | undefined,
-  currentPressure: number,
+  currentPressure: number
 ): WeatherTrend {
   if (!hourly || !Array.isArray(hourly.surface_pressure)) return 'stable';
   const arr = (hourly.surface_pressure as unknown[]).filter(
-    (v): v is number => typeof v === 'number',
+    (v): v is number => typeof v === 'number'
   );
   if (arr.length < 4) return 'stable';
   // 末尾を「現在」とみなし、3 時間前と比較する。

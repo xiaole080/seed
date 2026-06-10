@@ -9,11 +9,7 @@ import {
   MODE_COLOR,
   MODE_LABEL,
 } from '../data/attendance';
-import type {
-  AttendanceMode,
-  Schedule,
-  TimeBand,
-} from '../data/types';
+import type { AttendanceMode, Schedule, TimeBand } from '../data/types';
 
 interface AttendanceSetupScreenProps {
   initial?: Schedule;
@@ -46,9 +42,7 @@ export function AttendanceSetupScreen({
         // 単独表示のときだけ PhoneShell 内で伸びる + スクロールする。
         // embedded のときは親(ProfileScreen)のスクロール文脈に乗せるので
         // flex:1 / overflowY:auto を入れない (→ 高さ0 に潰れて何も見えなくなる)。
-        ...(embedded
-          ? {}
-          : { flex: 1, overflowY: 'auto' as const }),
+        ...(embedded ? {} : { flex: 1, overflowY: 'auto' as const }),
         display: 'flex',
         flexDirection: 'column',
         padding: embedded ? 0 : '4px 22px 24px',
@@ -59,7 +53,9 @@ export function AttendanceSetupScreen({
       {!embedded && (
         <Fragment>
           <div style={{ marginTop: 14, marginBottom: 4 }}>
-            <div style={{ fontSize: 12, color: PALETTE.inkSoft, marginBottom: 4 }}>
+            <div
+              style={{ fontSize: 12, color: PALETTE.inkSoft, marginBottom: 4 }}
+            >
               ステップ 3 / 4
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.4 }}>
@@ -94,7 +90,10 @@ export function AttendanceSetupScreen({
         {/* 土曜・日曜は事務所休業日のため選択肢から外す (isOfficeClosed と整合)。
             schedule[5]/[6] (土/日) は initial=DEFAULT_SCHEDULE のまま off で保持される。 */}
         {DAYS.slice(0, 5).map((d, i) => {
-          const s = schedule[i] || { mode: 'off' as AttendanceMode, band: 'full' as TimeBand };
+          const s = schedule[i] || {
+            mode: 'off' as AttendanceMode,
+            band: 'full' as TimeBand,
+          };
           const c = MODE_COLOR[s.mode];
           return (
             <div
@@ -142,9 +141,7 @@ export function AttendanceSetupScreen({
                           flex: 1,
                           border: 'none',
                           cursor: 'pointer',
-                          background: sel
-                            ? MODE_COLOR[m].bg
-                            : PALETTE.sageSoft,
+                          background: sel ? MODE_COLOR[m].bg : PALETTE.sageSoft,
                           color: sel
                             ? m === 'off'
                               ? PALETTE.inkSoft

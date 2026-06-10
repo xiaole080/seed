@@ -51,7 +51,7 @@ function daily(date: string, mood: Mood = 3): StoredDailyRecord {
 
 function att(
   date: string,
-  over: Partial<AttendanceMonthlyRecord> = {},
+  over: Partial<AttendanceMonthlyRecord> = {}
 ): AttendanceMonthlyRecord {
   return {
     localAttendanceId: `att_${date}`,
@@ -99,7 +99,7 @@ describe('store — DailyRecord CRUD', () => {
   it('upsert は updatedAt を現在時刻で更新する', () => {
     upsertDailyRecord(daily('2026-05-20'));
     expect(getDailyRecord('2026-05-20')?.updatedAt).toBe(
-      new Date(2026, 4, 23, 10, 30, 0).toISOString(),
+      new Date(2026, 4, 23, 10, 30, 0).toISOString()
     );
   });
 
@@ -208,7 +208,7 @@ describe('store — deleteAttendance (T3-A)', () => {
     localStorage.setItem('seed.consent.v1', '{"appTermsAccepted":true}');
     localStorage.setItem(
       'seed.care.goals.v1',
-      '{"smallGoals":[],"concernGoals":[]}',
+      '{"smallGoals":[],"concernGoals":[]}'
     );
     localStorage.setItem('seed.weather.v1', '{"snapshot":null}');
 
@@ -219,10 +219,10 @@ describe('store — deleteAttendance (T3-A)', () => {
     // 他キーは生き残る
     expect(getDailyRecord('2026-05-25')).toBeDefined();
     expect(localStorage.getItem('seed.consent.v1')).toBe(
-      '{"appTermsAccepted":true}',
+      '{"appTermsAccepted":true}'
     );
     expect(localStorage.getItem('seed.care.goals.v1')).toBe(
-      '{"smallGoals":[],"concernGoals":[]}',
+      '{"smallGoals":[],"concernGoals":[]}'
     );
     expect(localStorage.getItem('seed.weather.v1')).toBe('{"snapshot":null}');
   });
@@ -308,17 +308,17 @@ describe('store — setClosedDayActivity (案 X)', () => {
     localStorage.setItem('seed.consent.v1', '{"appTermsAccepted":true}');
     localStorage.setItem(
       'seed.care.goals.v1',
-      '{"smallGoals":[],"concernGoals":[]}',
+      '{"smallGoals":[],"concernGoals":[]}'
     );
 
     setClosedDayActivity('2026-05-30', 'medical');
 
     expect(getAttendance('2026-05-25')?.checkIn).toBe('09:30');
     expect(localStorage.getItem('seed.consent.v1')).toBe(
-      '{"appTermsAccepted":true}',
+      '{"appTermsAccepted":true}'
     );
     expect(localStorage.getItem('seed.care.goals.v1')).toBe(
-      '{"smallGoals":[],"concernGoals":[]}',
+      '{"smallGoals":[],"concernGoals":[]}'
     );
   });
 
@@ -344,7 +344,7 @@ describe('store — setClosedDayActivity (案 X)', () => {
           updatedAt: '2026-05-30T00:00:00.000Z',
           closedDayActivity: 'home_party', // 不正値
         },
-      }),
+      })
     );
     expect(getDailyRecord('2026-05-30')?.closedDayActivity).toBeUndefined();
   });
@@ -357,7 +357,10 @@ describe('store — 全データ削除 (A6)', () => {
     localStorage.setItem('seed.app.state.v1', '{}');
     localStorage.setItem('seed.consent.v1', '{}');
     localStorage.setItem('seed.outbox.v1', '[]');
-    localStorage.setItem('seed.care.goals.v1', '{"smallGoals":[],"concernGoals":[]}');
+    localStorage.setItem(
+      'seed.care.goals.v1',
+      '{"smallGoals":[],"concernGoals":[]}'
+    );
     // L1: seed.egg は鳥の名前など自由入力を含む可能性があるため削除対象
     localStorage.setItem('seed.egg', '{"name":"はる"}');
 
@@ -383,7 +386,9 @@ describe('store — 全データ削除 (A6)', () => {
     expect(localStorage.getItem('seed.routines.v1')).toBeNull();
     expect(localStorage.getItem('seed.routine.logs.v1')).toBeNull();
     expect(localStorage.getItem('seed.tasks.oneoff.v1')).toBeNull();
-    expect(localStorage.getItem('seed.notice.routines.dismissed.v1')).toBeNull();
+    expect(
+      localStorage.getItem('seed.notice.routines.dismissed.v1')
+    ).toBeNull();
   });
 
   it('deleteAllLocalData は closedDayActivity も seed.daily.v1 ごと消す (privacy 軽微 #1)', () => {
@@ -416,7 +421,7 @@ describe('store — 旧 DailyRecord 形式の互換読み込み (T1)', () => {
           createdAt: '2026-05-22T00:00:00.000Z',
           updatedAt: '2026-05-22T01:00:00.000Z',
         },
-      }),
+      })
     );
 
     const got = getDailyRecord('2026-05-22');
@@ -446,7 +451,7 @@ describe('store — 旧 DailyRecord 形式の互換読み込み (T1)', () => {
       'seed.daily.v1',
       JSON.stringify({
         '2026-05-15': { moodScore: 2, primaryInfluences: [] },
-      }),
+      })
     );
     upsertDailyRecord(daily('2026-05-23', 5));
     expect(getDailyRecord('2026-05-15')?.mood).toBe(2);
@@ -473,7 +478,7 @@ describe('store — 旧 DailyRecord 形式の互換読み込み (T1)', () => {
           primaryInfluences: [],
           targetDateType: 'yesterday',
         },
-      }),
+      })
     );
     expect(getDailyRecord('2026-05-20')?.targetDateType).toBeUndefined();
     expect(getDailyRecord('2026-05-21')?.targetDateType).toBe('today');

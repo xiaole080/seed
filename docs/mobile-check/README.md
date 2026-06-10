@@ -9,11 +9,11 @@ Sprint 2026-05-23 Phase 1 の受け入れ条件に対応する。
 
 Chrome DevTools のモバイルエミュレーションで以下 3 サイズを順に確認する。
 
-| 端末名         | width × height | 用途               |
-| -------------- | -------------- | ------------------ |
-| iPhone SE      | 375 × 667      | 一番狭い iOS       |
-| iPhone 12 Pro  | 390 × 844      | 標準的な iOS       |
-| Pixel 7 / 5    | 412 × 915      | Android 代表       |
+| 端末名        | width × height | 用途         |
+| ------------- | -------------- | ------------ |
+| iPhone SE     | 375 × 667      | 一番狭い iOS |
+| iPhone 12 Pro | 390 × 844      | 標準的な iOS |
+| Pixel 7 / 5   | 412 × 915      | Android 代表 |
 
 DevTools → デバイスツールバー（Ctrl/Cmd + Shift + M）→ プリセットから選択。
 

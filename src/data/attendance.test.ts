@@ -170,7 +170,7 @@ describe('isExceptionalCheckIn (T8)', () => {
         ...base,
         plannedMode: 'office',
         actualMode: 'office',
-      }),
+      })
     ).toBe(false);
   });
 });

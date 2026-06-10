@@ -5,10 +5,7 @@
 
 import { DAYS } from './attendance';
 import { listAttendanceByMonth } from './store';
-import type {
-  AttendanceMonthlyRecord,
-  Schedule,
-} from './types';
+import type { AttendanceMonthlyRecord, Schedule } from './types';
 
 const HEADERS = [
   'date',
@@ -37,12 +34,10 @@ function pad2(n: number) {
 export function getMonthAttendance(
   schedule: Schedule,
   year: number,
-  monthIndex0: number,
+  monthIndex0: number
 ): AttendanceMonthlyRecord[] {
   const yyyyMM = `${year}-${pad2(monthIndex0 + 1)}`;
-  const stored = new Map(
-    listAttendanceByMonth(yyyyMM).map((r) => [r.date, r]),
-  );
+  const stored = new Map(listAttendanceByMonth(yyyyMM).map((r) => [r.date, r]));
 
   const daysInMonth = new Date(year, monthIndex0 + 1, 0).getDate();
   const out: AttendanceMonthlyRecord[] = [];
@@ -101,7 +96,7 @@ export function recordsToCsv(records: AttendanceMonthlyRecord[]): string {
         r.edited,
       ]
         .map(csvEscape)
-        .join(','),
+        .join(',')
     );
   }
   return lines.join('\n');
@@ -111,7 +106,7 @@ export function recordsToCsv(records: AttendanceMonthlyRecord[]): string {
 export function attendanceFilename(
   year: number,
   monthIndex0: number,
-  nickname?: string,
+  nickname?: string
 ): string {
   const ym = `${year}-${pad2(monthIndex0 + 1)}`;
   const safe = (nickname ?? '').replace(/[^\p{L}\p{N}_-]/gu, '').slice(0, 16);

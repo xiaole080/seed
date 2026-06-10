@@ -51,7 +51,7 @@ export const WEATHER_TTL_MS = 60 * 60 * 1000;
 export function getCachedWeather(
   lat: number,
   lon: number,
-  now: number = Date.now(),
+  now: number = Date.now()
 ): WeatherSnapshot | null {
   const entry = getCachedWeatherRaw();
   if (!entry) return null;
@@ -80,7 +80,7 @@ export function setCachedWeather(
   lat: number,
   lon: number,
   snapshot: WeatherSnapshot,
-  now: number = Date.now(),
+  now: number = Date.now()
 ): void {
   const entry: CachedWeatherEntry = {
     lat: roundCoord(lat),

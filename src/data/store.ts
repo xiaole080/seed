@@ -25,7 +25,7 @@ import type {
 import { DAYS } from './attendance';
 
 // ── キー ──────────────────────────────────────────────────────
-const DAILY_KEY      = 'seed.daily.v1';
+const DAILY_KEY = 'seed.daily.v1';
 const ATTENDANCE_KEY = 'seed.attendance.v1';
 /** ケア画面のローカル目標保存キー。T2 で追加。 */
 export const CARE_GOALS_KEY = 'seed.care.goals.v1';
@@ -44,7 +44,7 @@ export const NOTICE_ROUTINES_DISMISSED_KEY =
 // 「未入力もデータ」(§13.7) を素直に表現する。
 export interface StoredDailyRecord {
   localRecordId: string;
-  date: string;          // YYYY-MM-DD
+  date: string; // YYYY-MM-DD
   mood: Mood;
   primaryInfluence: PrimaryInfluence[];
   /** 影響要因「その他」を選んだ時の自由入力。端末ローカル限定 (§9.5)。 */
@@ -85,7 +85,7 @@ export interface StoredDailyRecord {
     /** その他選択時の自由入力。端末ローカル限定。 */
     otherText?: string;
   };
-  note?: string;          // 自由記述 (端末ローカル限定, §13.8)
+  note?: string; // 自由記述 (端末ローカル限定, §13.8)
   missingness: MissingnessFlags;
   createdAt: string;
   updatedAt: string;
@@ -211,7 +211,7 @@ export function getDailyRecord(date: string): StoredDailyRecord | undefined {
 
 export function listDailyRecords(): StoredDailyRecord[] {
   return Object.values(readDailies()).sort((a, b) =>
-    a.date < b.date ? -1 : 1,
+    a.date < b.date ? -1 : 1
   );
 }
 
@@ -226,7 +226,7 @@ export function listDailyRecords(): StoredDailyRecord[] {
  */
 export function setClosedDayActivity(
   dateISO: string,
-  value: ClosedDayActivity,
+  value: ClosedDayActivity
 ): void {
   const map = readDailies();
   const existing = map[dateISO];
@@ -278,7 +278,7 @@ export function currentStreak(): number {
   if (Object.keys(map).length === 0) return 0;
   const today = new Date();
   // 今日に記録があるならスタートは今日、無ければ昨日から
-  let cursor = new Date(today);
+  const cursor = new Date(today);
   if (!map[isoFromDate(cursor)]) cursor.setDate(cursor.getDate() - 1);
   let streak = 0;
   for (let i = 0; i < 365; i++) {
@@ -328,12 +328,14 @@ export function deleteAttendance(date: string): void {
   }
 }
 
-export function getAttendance(date: string): AttendanceMonthlyRecord | undefined {
+export function getAttendance(
+  date: string
+): AttendanceMonthlyRecord | undefined {
   return readAttendance()[date];
 }
 
 export function listAttendanceByMonth(
-  yyyyMM: string,
+  yyyyMM: string
 ): AttendanceMonthlyRecord[] {
   return Object.values(readAttendance())
     .filter((r) => r.date.startsWith(yyyyMM))
@@ -370,7 +372,7 @@ export function weekdayEnFor(date: string): string {
 
 export function scheduleSlotFor(
   date: string,
-  schedule: Schedule,
+  schedule: Schedule
 ): { mode: AttendanceMode; band: TimeBand } | undefined {
   const [y, m, day] = date.split('-').map(Number);
   const jsDow = new Date(y, m - 1, day).getDay();

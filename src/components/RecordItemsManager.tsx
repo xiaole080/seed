@@ -144,7 +144,9 @@ export function RecordItemsManager({
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: 10, color: PALETTE.inkSoft, marginTop: 1 }}>
+              <div
+                style={{ fontSize: 10, color: PALETTE.inkSoft, marginTop: 1 }}
+              >
                 {it.hint || (isCustom ? 'カスタム項目' : '')}
               </div>
             </div>

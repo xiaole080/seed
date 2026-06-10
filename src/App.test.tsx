@@ -13,7 +13,7 @@ describe('App — 初期表示', () => {
     render(<App />);
     expect(screen.getByText('はじめに', { exact: false })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /同意して/ }),
+      screen.getByRole('button', { name: /同意して/ })
     ).toBeInTheDocument();
   });
 
@@ -22,7 +22,9 @@ describe('App — 初期表示', () => {
     render(<App />);
     // T6: ホームのCTAは「今日の様子を記録する / 修正する」になっている
     expect(
-      screen.getByRole('button', { name: /今日の様子を記録する|今日の記録を修正する/ }),
+      screen.getByRole('button', {
+        name: /今日の様子を記録する|今日の記録を修正する/,
+      })
     ).toBeInTheDocument();
   });
 });
@@ -59,7 +61,7 @@ describe('App — マイグレーション後の初期表示 (T17 / Phase 2a)', 
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-01T00:00:00.000Z',
         },
-      }),
+      })
     );
     localStorage.setItem('seed.app.phase.v1', JSON.stringify('app'));
 
@@ -67,7 +69,7 @@ describe('App — マイグレーション後の初期表示 (T17 / Phase 2a)', 
 
     // 既存記録が "今日の記録" として認識され、CTA が修正ボタンに化けている
     expect(
-      screen.getByRole('button', { name: /今日の記録を修正する/ }),
+      screen.getByRole('button', { name: /今日の記録を修正する/ })
     ).toBeInTheDocument();
     // schemaVersion がマイグレーションで更新されている (0.3.0 まで進む)
     expect(localStorage.getItem('seed.schema.version')).toBe('"0.3.0"');
@@ -106,7 +108,7 @@ describe('App — today カードの派生 (T1/T2)', () => {
         nickname: 'はる',
         todayMode: 'office',
         todayBand: 'full',
-      }),
+      })
     );
 
     render(<App />);
@@ -141,7 +143,7 @@ describe('App — today カードの派生 (T1/T2)', () => {
           edited: false,
           exportMonth: '2026-05',
         },
-      }),
+      })
     );
 
     render(<App />);
@@ -189,7 +191,7 @@ describe('App — 日付跨ぎ時の AttendanceCard 切り替え (T1-B / SPRINT 
           edited: false,
           exportMonth: '2026-05',
         },
-      }),
+      })
     );
 
     render(<App />);
@@ -211,9 +213,7 @@ describe('App — 日付跨ぎ時の AttendanceCard 切り替え (T1-B / SPRINT 
     // 火曜日も office なので「到着したら打刻してね」(state=before) が出る
     expect(screen.getByText('到着したら打刻してね')).toBeInTheDocument();
     // 前日の checkedOut 文言は消えている
-    expect(
-      screen.queryByText('おつかれさまでした'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('おつかれさまでした')).not.toBeInTheDocument();
     // 前日の実打刻時刻も今日のレンジには出ていない
     expect(screen.queryByText(/\(09:42 〜 15:08\)/)).not.toBeInTheDocument();
 
@@ -257,7 +257,7 @@ describe('App — 日付跨ぎ時の totalDays / streak 再計算 (バグ③)', 
           createdAt: '2026-05-25T10:00:00.000Z',
           updatedAt: '2026-05-25T10:00:00.000Z',
         },
-      }),
+      })
     );
 
     render(<App />);
@@ -324,10 +324,7 @@ describe('App — 到達ステージの永続化 (記録がない日に卵に戻
 
   // 連続 N 日分の最小限の DailyRecord を localStorage に書き込むヘルパ。
   // baseDateISO を「今日」として、過去 N 日分を埋める。
-  function seedDailyForStreak(
-    baseDateISO: string,
-    days: number,
-  ): void {
+  function seedDailyForStreak(baseDateISO: string, days: number): void {
     const [by, bm, bd] = baseDateISO.split('-').map(Number);
     const map: Record<string, unknown> = {};
     for (let i = 0; i < days; i++) {
@@ -405,7 +402,7 @@ describe('App — 到達ステージの永続化 (記録がない日に卵に戻
       JSON.stringify({
         nickname: 'はる',
         manualStage: 3,
-      }),
+      })
     );
 
     render(<App />);
@@ -437,7 +434,7 @@ describe('App — 到達ステージの永続化 (記録がない日に卵に戻
     // ホームが描画されていること (CTA の存在で確認)
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: /今日の様子を記録する/ }),
+        screen.getByRole('button', { name: /今日の様子を記録する/ })
       ).toBeInTheDocument();
     });
 
@@ -467,7 +464,7 @@ describe('App — 到達ステージの永続化 (記録がない日に卵に戻
         nickname: 'はる',
         manualStage: 3,
         eggSpecies: 'robin',
-      }),
+      })
     );
     // daily は空のまま (= streak=0 / 30 日間記録なし相当)
 
@@ -504,7 +501,7 @@ describe('App — 到達ステージの永続化 (記録がない日に卵に戻
         nickname: 'はる',
         manualStage: 3,
         eggSpecies: 'quail',
-      }),
+      })
     );
 
     // 全データ削除 (わたし画面 → 端末のデータを消す と同等)
@@ -532,7 +529,7 @@ describe('App — オンボーディングから記録まで通し', () => {
 
     // 00 同意: チェックを入れてから「同意して はじめる」
     await user.click(
-      screen.getByRole('checkbox', { name: /内容を読みました/ }),
+      screen.getByRole('checkbox', { name: /内容を読みました/ })
     );
     await user.click(screen.getByRole('button', { name: /同意して/ }));
 

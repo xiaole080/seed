@@ -66,7 +66,7 @@ export interface SearchPlacesOptions {
 
 export async function searchPlaces(
   query: string,
-  opts: SearchPlacesOptions,
+  opts: SearchPlacesOptions
 ): Promise<GeocodingResult[]> {
   // 同意の二重防衛: ここで明示的にブロック。
   if (opts.consent !== 'accepted') {

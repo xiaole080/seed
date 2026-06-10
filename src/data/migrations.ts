@@ -22,10 +22,7 @@
 import { loadJson, saveJson } from '../storage';
 import type { ConsentState } from './types';
 import type { StoredDailyRecord } from './store';
-import {
-  CARE_GOALS_KEY,
-  ONEOFF_TASKS_KEY,
-} from './store';
+import { CARE_GOALS_KEY, ONEOFF_TASKS_KEY } from './store';
 import type { OneOffTask } from './routines';
 
 type DailyMap = Record<
@@ -175,15 +172,14 @@ function migrateSmallGoalsToOneOff_0_2_0_to_0_3_0(): void {
           typeof g.createdAt === 'string'
             ? g.createdAt
             : new Date(0).toISOString(),
-        updatedAt:
-          typeof g.updatedAt === 'string' ? g.updatedAt : undefined,
+        updatedAt: typeof g.updatedAt === 'string' ? g.updatedAt : undefined,
       });
     }
 
     // 既存 oneoff があれば後ろに付ける (移行ぶんを先頭に置く)
     const existing = loadJson<OneOffTask[]>(ONEOFF_TASKS_KEY, []);
     const existingIds = new Set(
-      (Array.isArray(existing) ? existing : []).map((t) => t.id),
+      (Array.isArray(existing) ? existing : []).map((t) => t.id)
     );
     const merged = [
       ...migrated.filter((t) => !existingIds.has(t.id)),
@@ -219,7 +215,7 @@ export function runMigrations(): void {
     try {
       // eslint-disable-next-line no-console
       console.warn(
-        `[seed migrations] stored schemaVersion=${version} is ahead of ${CURRENT_SCHEMA_VERSION}; skipping migrations`,
+        `[seed migrations] stored schemaVersion=${version} is ahead of ${CURRENT_SCHEMA_VERSION}; skipping migrations`
       );
     } catch {
       // ignore

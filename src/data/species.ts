@@ -44,19 +44,25 @@ export const BIRD_SPECIES: EggSpeciesPalette[] = [
   },
 ];
 
-export function getSpecies(id: EggSpeciesId | string | undefined): EggSpeciesPalette {
+export function getSpecies(
+  id: EggSpeciesId | string | undefined
+): EggSpeciesPalette {
   return BIRD_SPECIES.find((s) => s.id === id) ?? BIRD_SPECIES[0];
 }
 
-export const EGG_SPECIES_OPTIONS: { id: EggSpeciesId; label: string; sub: string }[] = [
+export const EGG_SPECIES_OPTIONS: {
+  id: EggSpeciesId;
+  label: string;
+  sub: string;
+}[] = [
   { id: 'chicken', label: 'にわとり', sub: 'やさしい黄色の子' },
-  { id: 'robin',   label: 'こまどり', sub: 'みずいろの卵から' },
-  { id: 'quail',   label: 'うずら',   sub: 'まだら模様の卵から' },
+  { id: 'robin', label: 'こまどり', sub: 'みずいろの卵から' },
+  { id: 'quail', label: 'うずら', sub: 'まだら模様の卵から' },
 ];
 
 export const EGG_TRAITS: EggTraitOption[] = [
-  { id: 'calm',    label: 'おだやか',   icon: '🌿', sub: 'のんびり屋さん' },
+  { id: 'calm', label: 'おだやか', icon: '🌿', sub: 'のんびり屋さん' },
   { id: 'curious', label: 'こうきしん', icon: '✨', sub: '探検が好き' },
-  { id: 'bright', label: 'あかるい',    icon: '☀️', sub: 'いつも前向き' },
-  { id: 'gentle', label: 'おもいやり',  icon: '🌙', sub: 'やさしい心' },
+  { id: 'bright', label: 'あかるい', icon: '☀️', sub: 'いつも前向き' },
+  { id: 'gentle', label: 'おもいやり', icon: '🌙', sub: 'やさしい心' },
 ];

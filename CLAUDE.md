@@ -37,6 +37,7 @@
 ## 各 subagent の定義場所
 
 `.claude/agents/` 配下に以下を配置している。
+
 - product-manager.md
 - frontend-engineer.md
 - qa-tester.md

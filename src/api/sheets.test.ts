@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 function okFetch() {
   return vi.fn(
     async (_url: string, _init: RequestInit) =>
-      new Response('{"ok":true}', { status: 200 }),
+      new Response('{"ok":true}', { status: 200 })
   );
 }
 
@@ -26,7 +26,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 未設定 (既定)', () => {
     const m = await import('./sheets');
     await m.logMood(
       { mood: 4, primaryInfluence: ['sleep'], selections: {} },
-      'はる',
+      'はる'
     );
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(m.getOutboxSize()).toBe(0);
@@ -63,7 +63,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
         primaryInfluence: ['sleep'],
         selections: { 'sleep.bedtime': '23:00' },
       },
-      'はる',
+      'はる'
     );
     expect(fetchSpy).toHaveBeenCalled();
     await vi.waitFor(() => expect(m.getOutboxSize()).toBe(0));
@@ -75,7 +75,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
     const m = await import('./sheets');
     await m.logMood(
       { mood: 2, primaryInfluence: ['fatigue'], selections: {} },
-      'はる',
+      'はる'
     );
     await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled());
 
@@ -110,7 +110,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
           note: 'はみ出した自由記述',
         } as Record<string, string | string[] | null>,
       },
-      'はる',
+      'はる'
     );
     await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled());
 
@@ -159,7 +159,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
           userText: 'テキスト',
         } as Record<string, string | string[] | null>,
       },
-      'はる',
+      'はる'
     );
     await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled());
     const init = fetchSpy.mock.calls[0][1];
@@ -202,7 +202,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
         text: '自由文',
         memo: 'メモ',
       } as unknown as Parameters<typeof m.logTask>[0],
-      'はる',
+      'はる'
     );
     await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled());
     const init = fetchSpy.mock.calls[0][1];
@@ -228,7 +228,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
     const m = await import('./sheets');
     await m.logSettings(
       { field: 'weatherApiConsent', value: 'notAsked' },
-      'はる',
+      'はる'
     );
     // sanitize で弾かれるため outbox にも乗らないし fetch も呼ばれない
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -241,7 +241,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
     const m = await import('./sheets');
     await m.logSettings(
       { field: 'weatherApiConsent', value: 'accepted' },
-      'はる',
+      'はる'
     );
     await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled());
     const init = fetchSpy.mock.calls[0][1];
@@ -261,23 +261,23 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
       m.sanitizeSettingsPayload({
         field: 'weatherApiConsent',
         value: 'notAsked',
-      }),
+      })
     ).toBeNull();
     // ホワイトリスト外の field は弾く
     expect(
       m.sanitizeSettingsPayload({
         field: 'mysteryField' as never,
         value: 'x',
-      }),
+      })
     ).toBeNull();
     // recordIds は number のみ
     expect(
-      m.sanitizeSettingsPayload({ field: 'recordIds', value: '3' as never }),
+      m.sanitizeSettingsPayload({ field: 'recordIds', value: '3' as never })
     ).toBeNull();
     // 正常系は素通り
-    expect(
-      m.sanitizeSettingsPayload({ field: 'recordIds', value: 3 }),
-    ).toEqual({ field: 'recordIds', value: 3 });
+    expect(m.sanitizeSettingsPayload({ field: 'recordIds', value: 3 })).toEqual(
+      { field: 'recordIds', value: 3 }
+    );
   });
 
   it('sanitizeTaskPayload は不正な型をデフォルトに落とす', async () => {
@@ -294,7 +294,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
   it('送信失敗 (HTTP 500) は outbox に残す', async () => {
     const fetchSpy = vi.fn(
       async (_url: string, _init: RequestInit) =>
-        new Response('error', { status: 500 }),
+        new Response('error', { status: 500 })
     );
     vi.stubGlobal('fetch', fetchSpy);
     const m = await import('./sheets');
@@ -306,7 +306,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
   it('HTTP 200 でも {"ok":false} は失敗扱いで outbox に残す', async () => {
     const fetchSpy = vi.fn(
       async (_url: string, _init: RequestInit) =>
-        new Response('{"ok":false,"error":"auth"}', { status: 200 }),
+        new Response('{"ok":false,"error":"auth"}', { status: 200 })
     );
     vi.stubGlobal('fetch', fetchSpy);
     const m = await import('./sheets');
@@ -327,7 +327,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
           client: 'c1',
           payload: { mood: 3, primaryInfluence: [], selections: {} },
         },
-      ]),
+      ])
     );
     const m = await import('./sheets');
     expect(m.getOutboxSize()).toBe(1);
@@ -341,7 +341,7 @@ describe('sheets — VITE_SHEETS_ENDPOINT 設定あり', () => {
     const m = await import('./sheets');
     await m.logCheckIn(
       { mode: 'office', band: 'full', state: 'checkedIn', time: '9:42' },
-      'はる',
+      'はる'
     );
     expect(localStorage.getItem('seed.clientId')).toBeTruthy();
   });

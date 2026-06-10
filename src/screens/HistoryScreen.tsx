@@ -16,7 +16,11 @@ import type {
   SleepIssue,
 } from '../data/types';
 // データは localStorage の読み取りのみ。書き込み・外部送信は行わない。
-import { listDailyRecords, listAttendanceByMonth, todayISO } from '../data/store';
+import {
+  listDailyRecords,
+  listAttendanceByMonth,
+  todayISO,
+} from '../data/store';
 import type { StoredDailyRecord } from '../data/store';
 import {
   rangeFor,
@@ -61,7 +65,7 @@ const RANGES: HistoryRange[] = ['7d', '14d', 'month'];
 // 詳細記録カテゴリの label/icon を CATEGORIES のサブ質問選択肢から引くための補助。
 function optionLabelMap(
   categoryId: string,
-  sectionId: string,
+  sectionId: string
 ): Record<string, { label: string; icon?: string }> {
   const cat = CATEGORY_BY_ID[categoryId];
   const section = cat?.sections.find((s) => s.id === sectionId);
@@ -101,20 +105,20 @@ export function HistoryScreen({
 
   const daily = useMemo(
     () => filterDailyByRange(allDaily, dateRange),
-    [allDaily, dateRange],
+    [allDaily, dateRange]
   );
 
   // 通所ストアは月単位取得 → レンジが触れる月をすべて読み、レンジで再フィルタ。
   const attendance = useMemo(() => {
     const merged = monthsInRange(dateRange).flatMap((m) =>
-      listAttendanceByMonth(m),
+      listAttendanceByMonth(m)
     );
     return filterAttendanceByRange(merged, dateRange);
   }, [dateRange]);
 
   const overview = useMemo(
     () => rangeOverview(daily, attendance),
-    [daily, attendance],
+    [daily, attendance]
   );
 
   const summaryText = useMemo(() => {
@@ -122,7 +126,7 @@ export function HistoryScreen({
     if (range === 'month') {
       return SUMMARY_COPY.monthlyReview(
         overview.recordedDays,
-        overview.averageMood,
+        overview.averageMood
       );
     }
     return SUMMARY_COPY.recorded(RANGE_TERM[range], overview.recordedDays);
@@ -220,7 +224,9 @@ export function HistoryScreen({
           />
           <StatCard
             label="記録した日の平均"
-            value={overview.averageMood == null ? '—' : String(overview.averageMood)}
+            value={
+              overview.averageMood == null ? '—' : String(overview.averageMood)
+            }
             sub={overview.averageMood == null ? '' : '/5'}
           />
           <StatCard
@@ -301,9 +307,7 @@ function StatCard({
       >
         {value}
         {sub && (
-          <span
-            style={{ fontSize: 11, color: PALETTE.inkSoft, marginLeft: 2 }}
-          >
+          <span style={{ fontSize: 11, color: PALETTE.inkSoft, marginLeft: 2 }}>
             {sub}
           </span>
         )}
@@ -426,10 +430,7 @@ function MoodTrend({
   // 1件のときも除算で落ちないよう、分母を最低 1 にする。
   const denom = Math.max(series.length - 1, 1);
   const points = series.map((p, i) => {
-    const x =
-      series.length === 1
-        ? W / 2
-        : P + (i / denom) * (W - 2 * P);
+    const x = series.length === 1 ? W / 2 : P + (i / denom) * (W - 2 * P);
     const y = H - P - ((p.mood - 1) / 4) * (H - 2 * P);
     return [x, y] as const;
   });
@@ -510,7 +511,7 @@ function MoodTrend({
 // ── 影響要因ランキング (T4) ──────────────────────────────────
 
 const INFLUENCE_BY_ID = Object.fromEntries(
-  PRIMARY_INFLUENCES.map((p) => [p.id, p]),
+  PRIMARY_INFLUENCES.map((p) => [p.id, p])
 );
 
 function InfluenceRanking({ records }: { records: StoredDailyRecord[] }) {
@@ -761,8 +762,7 @@ function SleepCard({ records }: { records: StoredDailyRecord[] }) {
             <ChipRow
               items={stats.issues.slice(0, 5).map((it) => ({
                 key: it.id,
-                label:
-                  SLEEP_ISSUE_LABELS[it.id as SleepIssue]?.label ?? it.id,
+                label: SLEEP_ISSUE_LABELS[it.id as SleepIssue]?.label ?? it.id,
                 icon: SLEEP_ISSUE_LABELS[it.id as SleepIssue]?.icon,
                 count: it.count,
               }))}
@@ -790,8 +790,7 @@ function MealCard({ records }: { records: StoredDailyRecord[] }) {
             <ChipRow
               items={stats.statuses.map((it) => ({
                 key: it.id,
-                label:
-                  MEAL_STATUS_LABELS[it.id as MealStatus]?.label ?? it.id,
+                label: MEAL_STATUS_LABELS[it.id as MealStatus]?.label ?? it.id,
                 icon: MEAL_STATUS_LABELS[it.id as MealStatus]?.icon,
                 count: it.count,
               }))}
@@ -819,8 +818,7 @@ function ExerciseCard({ records }: { records: StoredDailyRecord[] }) {
             <ChipRow
               items={stats.activities.slice(0, 6).map((it) => ({
                 key: it.id,
-                label:
-                  ACTIVITY_LABELS[it.id as ActivityFlag]?.label ?? it.id,
+                label: ACTIVITY_LABELS[it.id as ActivityFlag]?.label ?? it.id,
                 icon: ACTIVITY_LABELS[it.id as ActivityFlag]?.icon,
                 count: it.count,
               }))}
@@ -848,8 +846,7 @@ function ConditionCard({ records }: { records: StoredDailyRecord[] }) {
             <ChipRow
               items={stats.flags.slice(0, 6).map((it) => ({
                 key: it.id,
-                label:
-                  CONDITION_LABELS[it.id as ConditionFlag]?.label ?? it.id,
+                label: CONDITION_LABELS[it.id as ConditionFlag]?.label ?? it.id,
                 icon: CONDITION_LABELS[it.id as ConditionFlag]?.icon,
                 count: it.count,
               }))}
@@ -925,7 +922,10 @@ function DateTimeline({
   }, [attendance]);
 
   // 新しい順
-  const sortedDates = useMemo(() => dates.slice().sort((a, b) => (a < b ? 1 : -1)), [dates]);
+  const sortedDates = useMemo(
+    () => dates.slice().sort((a, b) => (a < b ? 1 : -1)),
+    [dates]
+  );
 
   return (
     <>
@@ -940,7 +940,14 @@ function DateTimeline({
       >
         日付ごとのきろく
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          marginBottom: 12,
+        }}
+      >
         {sortedDates.map((d) => (
           <DateTimelineRow
             key={d}
@@ -972,7 +979,10 @@ function DateTimelineRow({
   const hasNote = !!record?.note && record.note.trim() !== '';
   const otherTexts: { label: string; text: string }[] = [];
   if (record?.influenceOtherText) {
-    otherTexts.push({ label: '影響していそうなこと', text: record.influenceOtherText });
+    otherTexts.push({
+      label: '影響していそうなこと',
+      text: record.influenceOtherText,
+    });
   }
   if (record?.sleep?.otherText && recordIds.includes('sleep')) {
     otherTexts.push({ label: '睡眠', text: record.sleep.otherText });
@@ -991,7 +1001,9 @@ function DateTimelineRow({
   }
   const hasExpandable = hasNote || otherTexts.length > 0;
 
-  const moodObj = record ? MOODS.find((m) => m.v === record.mood) ?? MOODS[2] : null;
+  const moodObj = record
+    ? (MOODS.find((m) => m.v === record.mood) ?? MOODS[2])
+    : null;
 
   // 主要項目の要約 (ON のものだけ)
   const lines: string[] = [];
@@ -1008,8 +1020,8 @@ function DateTimelineRow({
       if (record.sleep.wakeTime) parts.push(`起床 ${record.sleep.wakeTime}`);
       if (record.sleep.sleepIssues?.length) {
         const lbl =
-          SLEEP_ISSUE_LABELS[record.sleep.sleepIssues[0] as SleepIssue]?.label ??
-          record.sleep.sleepIssues[0];
+          SLEEP_ISSUE_LABELS[record.sleep.sleepIssues[0] as SleepIssue]
+            ?.label ?? record.sleep.sleepIssues[0];
         parts.push(lbl);
       }
       if (parts.length) lines.push(`睡眠: ${parts.join(' / ')}`);
@@ -1020,16 +1032,22 @@ function DateTimelineRow({
         record.meal.mealStatus;
       lines.push(`食事: ${lbl}`);
     }
-    if (recordIds.includes('exercise') && record.exercise?.activityFlags?.length) {
+    if (
+      recordIds.includes('exercise') &&
+      record.exercise?.activityFlags?.length
+    ) {
       const lbl =
-        ACTIVITY_LABELS[record.exercise.activityFlags[0] as ActivityFlag]?.label ??
-        record.exercise.activityFlags[0];
+        ACTIVITY_LABELS[record.exercise.activityFlags[0] as ActivityFlag]
+          ?.label ?? record.exercise.activityFlags[0];
       lines.push(`運動・活動: ${lbl}`);
     }
-    if (recordIds.includes('condition') && record.condition?.conditionFlags?.length) {
+    if (
+      recordIds.includes('condition') &&
+      record.condition?.conditionFlags?.length
+    ) {
       const lbl =
-        CONDITION_LABELS[record.condition.conditionFlags[0] as ConditionFlag]?.label ??
-        record.condition.conditionFlags[0];
+        CONDITION_LABELS[record.condition.conditionFlags[0] as ConditionFlag]
+          ?.label ?? record.condition.conditionFlags[0];
       lines.push(`体調: ${lbl}`);
     }
     if (recordIds.includes('meds') && record.medication?.medicationStatus) {
@@ -1063,10 +1081,14 @@ function DateTimelineRow({
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ fontSize: 22 }}>{moodObj?.face ?? '・'}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 700 }}>{formatDate(date)}</div>
+          <div style={{ fontSize: 12, fontWeight: 700 }}>
+            {formatDate(date)}
+          </div>
           {record ? (
             <>
-              <div style={{ fontSize: 10, color: PALETTE.inkSoft, marginTop: 2 }}>
+              <div
+                style={{ fontSize: 10, color: PALETTE.inkSoft, marginTop: 2 }}
+              >
                 気分: {moodObj?.label}（{record.mood}/5）
               </div>
               {lines.map((line, i) => (
@@ -1078,7 +1100,9 @@ function DateTimelineRow({
                 </div>
               ))}
               {attendanceLine && (
-                <div style={{ fontSize: 10, color: PALETTE.inkSoft, marginTop: 2 }}>
+                <div
+                  style={{ fontSize: 10, color: PALETTE.inkSoft, marginTop: 2 }}
+                >
                   {attendanceLine}
                 </div>
               )}
@@ -1137,7 +1161,9 @@ function DateTimelineRow({
           ))}
           {hasNote && (
             <div>
-              <span style={{ color: PALETTE.inkSoft, fontWeight: 700 }}>メモ:</span>{' '}
+              <span style={{ color: PALETTE.inkSoft, fontWeight: 700 }}>
+                メモ:
+              </span>{' '}
               <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {record?.note}
               </span>
@@ -1166,7 +1192,7 @@ function HiddenItemsNote({
   const checkOff = (
     id: 'sleep' | 'meal' | 'exercise' | 'condition' | 'meds',
     label: string,
-    has: (r: StoredDailyRecord) => boolean,
+    has: (r: StoredDailyRecord) => boolean
   ) => {
     if (recordIds.includes(id)) return;
     const days = records.filter(has).length;
@@ -1259,9 +1285,7 @@ function RecentRow({ record }: { record: StoredDailyRecord }) {
         <div style={{ fontSize: 22 }}>{moodObj.face}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 700 }}>{record.date}</div>
-          <div
-            style={{ fontSize: 10, color: PALETTE.inkSoft, marginTop: 2 }}
-          >
+          <div style={{ fontSize: 10, color: PALETTE.inkSoft, marginTop: 2 }}>
             {moodObj.label}
             {record.sleep?.bedtime && ` · 入眠 ${record.sleep.bedtime}`}
           </div>

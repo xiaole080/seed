@@ -63,7 +63,7 @@ describe('ConsentScreen', () => {
     render(<ConsentScreen consent={BASE_CONSENT} onAccept={onAccept} />);
 
     await user.click(
-      screen.getByRole('checkbox', { name: /内容を読みました/ }),
+      screen.getByRole('checkbox', { name: /内容を読みました/ })
     );
     await user.click(screen.getByRole('button', { name: /同意して/ }));
 
@@ -79,10 +79,10 @@ describe('ConsentScreen', () => {
     render(<ConsentScreen consent={BASE_CONSENT} onAccept={onAccept} />);
 
     await user.click(
-      screen.getByRole('checkbox', { name: /自動バックアップに同意/ }),
+      screen.getByRole('checkbox', { name: /自動バックアップに同意/ })
     );
     await user.click(
-      screen.getByRole('checkbox', { name: /内容を読みました/ }),
+      screen.getByRole('checkbox', { name: /内容を読みました/ })
     );
     await user.click(screen.getByRole('button', { name: /同意して/ }));
 
@@ -99,14 +99,12 @@ describe('ConsentScreen', () => {
     render(<ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />);
     expect(screen.getByText('使用できる範囲')).toBeInTheDocument();
     expect(
-      screen.getByText(/みんなで磨こう！アプリ作成講座/),
+      screen.getByText(/みんなで磨こう！アプリ作成講座/)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/診療・治療・支援方針の決定の根拠としては使用できません/),
+      screen.getByText(/診療・治療・支援方針の決定の根拠としては使用できません/)
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/開発者は責任を負えません/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/開発者は責任を負えません/)).toBeInTheDocument();
   });
 
   it('「どこに のこるか」に Open-Meteo と小数第2位の説明を含む', () => {
@@ -183,7 +181,7 @@ describe('ConsentScreen', () => {
 
     await user.click(screen.getByRole('checkbox', { name: /天気を表示する/ }));
     await user.click(
-      screen.getByRole('checkbox', { name: /自動バックアップに同意/ }),
+      screen.getByRole('checkbox', { name: /自動バックアップに同意/ })
     );
     const start = screen.getByRole('button', { name: /同意して/ });
     expect(start).toBeDisabled();
@@ -198,7 +196,7 @@ describe('ConsentScreen', () => {
     render(<ConsentScreen consent={BASE_CONSENT} onAccept={onAccept} />);
 
     await user.click(
-      screen.getByRole('checkbox', { name: /内容を読みました/ }),
+      screen.getByRole('checkbox', { name: /内容を読みました/ })
     );
     const start = screen.getByRole('button', { name: /同意して/ });
     expect(start).not.toBeDisabled();
@@ -218,10 +216,10 @@ describe('ConsentScreen', () => {
 
     await user.click(screen.getByRole('checkbox', { name: /天気を表示する/ }));
     await user.click(
-      screen.getByRole('checkbox', { name: /自動バックアップに同意/ }),
+      screen.getByRole('checkbox', { name: /自動バックアップに同意/ })
     );
     await user.click(
-      screen.getByRole('checkbox', { name: /内容を読みました/ }),
+      screen.getByRole('checkbox', { name: /内容を読みました/ })
     );
     await user.click(screen.getByRole('button', { name: /同意して/ }));
 
@@ -243,7 +241,7 @@ describe('ConsentScreen', () => {
 
     await user.click(screen.getByRole('checkbox', { name: /天気を表示する/ }));
     await user.click(
-      screen.getByRole('checkbox', { name: /内容を読みました/ }),
+      screen.getByRole('checkbox', { name: /内容を読みました/ })
     );
     await user.click(screen.getByRole('button', { name: /同意して/ }));
 
@@ -305,7 +303,7 @@ describe('ConsentScreen', () => {
   // 医療を装う / 命令的な強い表現が新規セクションに紛れ込まないことを確認。
   it('医療を装う / 命令的な強い文言が ConsentScreen に含まれない', () => {
     const { container } = render(
-      <ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />,
+      <ConsentScreen consent={BASE_CONSENT} onAccept={() => {}} />
     );
     const text = container.textContent ?? '';
     // 「医療的な診断はしません」のような「しません」を含む文は許容するため、
@@ -361,7 +359,7 @@ describe('CheckInScreen', () => {
     const user = userEvent.setup();
     const onCheckIn = vi.fn();
     render(
-      <CheckInScreen today={today} state="before" onCheckIn={onCheckIn} />,
+      <CheckInScreen today={today} state="before" onCheckIn={onCheckIn} />
     );
 
     await user.click(screen.getByRole('button', { name: /通所打刻/ }));
@@ -385,17 +383,17 @@ describe('CheckInScreen', () => {
       render(<CheckInScreen today={t} state={state} />);
       expect(screen.getByText('到着')).toBeInTheDocument();
       expect(screen.getByText('帰宅')).toBeInTheDocument();
-    },
+    }
   );
 
   it('お休みの日は「お休みのままにする」と「やっぱり通所する」の2ボタンが出る (T6 / T4-A)', () => {
     const offToday: TodayCard = { mode: 'off', band: 'full', dayLabel: '土' };
     render(<CheckInScreen today={offToday} state="before" />);
     expect(
-      screen.getByRole('button', { name: 'お休みのままにする' }),
+      screen.getByRole('button', { name: 'お休みのままにする' })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'やっぱり通所する' }),
+      screen.getByRole('button', { name: 'やっぱり通所する' })
     ).toBeInTheDocument();
   });
 
@@ -404,11 +402,7 @@ describe('CheckInScreen', () => {
     const onCheckIn = vi.fn();
     const offToday: TodayCard = { mode: 'off', band: 'full', dayLabel: '土' };
     render(
-      <CheckInScreen
-        today={offToday}
-        state="before"
-        onCheckIn={onCheckIn}
-      />,
+      <CheckInScreen today={offToday} state="before" onCheckIn={onCheckIn} />
     );
 
     await user.click(screen.getByRole('button', { name: 'やっぱり通所する' }));
@@ -419,7 +413,7 @@ describe('CheckInScreen', () => {
     expect(checkInBtn).toBeInTheDocument();
     // 「お休みに戻す」リンクが現れる
     expect(
-      screen.getByRole('button', { name: 'お休みに戻す' }),
+      screen.getByRole('button', { name: 'お休みに戻す' })
     ).toBeInTheDocument();
 
     // 打刻ボタン押下で onCheckIn が呼ばれる
@@ -437,13 +431,13 @@ describe('CheckInScreen', () => {
 
     // 初期2択に戻っている
     expect(
-      screen.getByRole('button', { name: 'お休みのままにする' }),
+      screen.getByRole('button', { name: 'お休みのままにする' })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'やっぱり通所する' }),
+      screen.getByRole('button', { name: 'やっぱり通所する' })
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'お休みに戻す' }),
+      screen.queryByRole('button', { name: 'お休みに戻す' })
     ).not.toBeInTheDocument();
   });
 
@@ -456,9 +450,7 @@ describe('CheckInScreen', () => {
       checkOutTime: '15:08',
     };
     render(<CheckInScreen today={t} state="checkedOut" />);
-    expect(
-      screen.getByText(/\(09:42 〜 15:08\)/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/\(09:42 〜 15:08\)/)).toBeInTheDocument();
   });
 
   // BUG-1 修正済み (T6 regression / 行き止まり):
@@ -479,7 +471,7 @@ describe('CheckInScreen', () => {
     };
     render(<CheckInScreen today={offToday} state="checkedIn" />);
     expect(
-      screen.getByRole('button', { name: /帰宅打刻/ }),
+      screen.getByRole('button', { name: /帰宅打刻/ })
     ).toBeInTheDocument();
   });
 
@@ -493,7 +485,7 @@ describe('CheckInScreen', () => {
     };
     render(<CheckInScreen today={offToday} state="checkedOut" />);
     expect(
-      screen.getByRole('button', { name: /ホームへもどる/ }),
+      screen.getByRole('button', { name: /ホームへもどる/ })
     ).toBeInTheDocument();
   });
 
@@ -509,10 +501,10 @@ describe('CheckInScreen', () => {
     };
     render(<CheckInScreen today={offToday} state="checkedIn" />);
     expect(
-      screen.queryByRole('button', { name: 'お休みのままにする' }),
+      screen.queryByRole('button', { name: 'お休みのままにする' })
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'やっぱり通所する' }),
+      screen.queryByRole('button', { name: 'やっぱり通所する' })
     ).not.toBeInTheDocument();
   });
 
@@ -538,10 +530,10 @@ describe('CheckInScreen', () => {
   it('新フッター文言 (打刻 ≠ 連絡) が表示される (T2-B)', () => {
     render(<CheckInScreen today={today} state="before" />);
     expect(
-      screen.getByText(/この打刻は記録のためのものです。/),
+      screen.getByText(/この打刻は記録のためのものです。/)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/事業所への出欠の連絡は、これまでどおりお願いします。/),
+      screen.getByText(/事業所への出欠の連絡は、これまでどおりお願いします。/)
     ).toBeInTheDocument();
   });
 
@@ -559,11 +551,7 @@ describe('CheckInScreen', () => {
       checkOutTime: '15:08',
     };
     render(
-      <CheckInScreen
-        today={t}
-        state="checkedOut"
-        onTimeEdit={onTimeEdit}
-      />,
+      <CheckInScreen today={t} state="checkedOut" onTimeEdit={onTimeEdit} />
     );
 
     await user.click(screen.getByRole('button', { name: '時刻を手で直す' }));
@@ -598,7 +586,7 @@ describe('CheckInScreen', () => {
       checkInTime: '09:30',
     };
     render(
-      <CheckInScreen today={t} state="checkedIn" onTimeEdit={onTimeEdit} />,
+      <CheckInScreen today={t} state="checkedIn" onTimeEdit={onTimeEdit} />
     );
 
     await user.click(screen.getByRole('button', { name: '時刻を手で直す' }));
@@ -606,9 +594,7 @@ describe('CheckInScreen', () => {
     await user.clear(inInput);
     await user.type(inInput, '23:30'); // 現在 10:00 より後 = 未来
 
-    expect(
-      screen.getByText('未来の時刻は記録できません'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('未来の時刻は記録できません')).toBeInTheDocument();
     const saveBtn = screen.getByRole('button', { name: '保存' });
     expect(saveBtn).toBeDisabled();
     await user.click(saveBtn);
@@ -629,7 +615,7 @@ describe('CheckInScreen', () => {
       checkOutTime: '15:00',
     };
     render(
-      <CheckInScreen today={t} state="checkedOut" onTimeEdit={onTimeEdit} />,
+      <CheckInScreen today={t} state="checkedOut" onTimeEdit={onTimeEdit} />
     );
 
     await user.click(screen.getByRole('button', { name: '時刻を手で直す' }));
@@ -638,7 +624,7 @@ describe('CheckInScreen', () => {
     await user.type(outInput, '09:00'); // 到着 10:00 より前
 
     expect(
-      screen.getByText('帰宅は到着より後にしてください'),
+      screen.getByText('帰宅は到着より後にしてください')
     ).toBeInTheDocument();
     const saveBtn = screen.getByRole('button', { name: '保存' });
     expect(saveBtn).toBeDisabled();
@@ -682,7 +668,7 @@ describe('CheckInScreen', () => {
       checkOutTime: '15:08',
     };
     render(
-      <CheckInScreen today={t} state="checkedOut" onTimeEdit={onTimeEdit} />,
+      <CheckInScreen today={t} state="checkedOut" onTimeEdit={onTimeEdit} />
     );
 
     await user.click(screen.getByRole('button', { name: '時刻を手で直す' }));
@@ -694,7 +680,7 @@ describe('CheckInScreen', () => {
     expect(onTimeEdit).not.toHaveBeenCalled();
     // 編集 UI が閉じ、再度「時刻を手で直す」ボタンが見える
     expect(
-      screen.getByRole('button', { name: '時刻を手で直す' }),
+      screen.getByRole('button', { name: '時刻を手で直す' })
     ).toBeInTheDocument();
     vi.useRealTimers();
   });
@@ -703,14 +689,14 @@ describe('CheckInScreen', () => {
   it('checkedIn 中は「この打刻を取り消す」ボタンが出る (T3-B)', () => {
     render(<CheckInScreen today={today} state="checkedIn" />);
     expect(
-      screen.getByRole('button', { name: 'この打刻を取り消す' }),
+      screen.getByRole('button', { name: 'この打刻を取り消す' })
     ).toBeInTheDocument();
   });
 
   it('before 状態では「この打刻を取り消す」ボタンは出ない (T3-B)', () => {
     render(<CheckInScreen today={today} state="before" />);
     expect(
-      screen.queryByRole('button', { name: 'この打刻を取り消す' }),
+      screen.queryByRole('button', { name: 'この打刻を取り消す' })
     ).not.toBeInTheDocument();
   });
 
@@ -718,18 +704,18 @@ describe('CheckInScreen', () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     render(
-      <CheckInScreen today={today} state="checkedOut" onDelete={onDelete} />,
+      <CheckInScreen today={today} state="checkedOut" onDelete={onDelete} />
     );
 
     await user.click(
-      screen.getByRole('button', { name: 'この打刻を取り消す' }),
+      screen.getByRole('button', { name: 'この打刻を取り消す' })
     );
     // 確認文言 + Sheets 注記 (T3-C 一律表示) が出る
     expect(
-      screen.getByText(/今日の打刻を取り消しますか？/),
+      screen.getByText(/今日の打刻を取り消しますか？/)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/すでに Google Sheets に送信された記録は/),
+      screen.getByText(/すでに Google Sheets に送信された記録は/)
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '取り消す' }));
@@ -740,16 +726,16 @@ describe('CheckInScreen', () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     render(
-      <CheckInScreen today={today} state="checkedOut" onDelete={onDelete} />,
+      <CheckInScreen today={today} state="checkedOut" onDelete={onDelete} />
     );
 
     await user.click(
-      screen.getByRole('button', { name: 'この打刻を取り消す' }),
+      screen.getByRole('button', { name: 'この打刻を取り消す' })
     );
     await user.click(screen.getByRole('button', { name: 'やめる' }));
     expect(onDelete).not.toHaveBeenCalled();
     expect(
-      screen.getByRole('button', { name: 'この打刻を取り消す' }),
+      screen.getByRole('button', { name: 'この打刻を取り消す' })
     ).toBeInTheDocument();
   });
 
@@ -766,7 +752,7 @@ describe('CheckInScreen', () => {
     it('休業日メッセージが表示される', () => {
       render(<CheckInScreen today={closedSat} state="before" />);
       expect(
-        screen.getByText(/本日は事務所休業日のため打刻できません/),
+        screen.getByText(/本日は事務所休業日のため打刻できません/)
       ).toBeInTheDocument();
     });
 
@@ -779,13 +765,13 @@ describe('CheckInScreen', () => {
     it('案 X の 3 つの軽い記録ボタンが表示される', () => {
       render(<CheckInScreen today={closedSat} state="before" />);
       expect(
-        screen.getByRole('button', { name: '自宅で過ごした' }),
+        screen.getByRole('button', { name: '自宅で過ごした' })
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: '外出した' }),
+        screen.getByRole('button', { name: '外出した' })
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: '通院した' }),
+        screen.getByRole('button', { name: '通院した' })
       ).toBeInTheDocument();
     });
 
@@ -797,7 +783,7 @@ describe('CheckInScreen', () => {
           today={closedSat}
           state="before"
           onClosedDayActivity={onClosedDayActivity}
-        />,
+        />
       );
       await user.click(screen.getByRole('button', { name: '外出した' }));
       expect(onClosedDayActivity).toHaveBeenCalledWith('outing');
@@ -809,7 +795,7 @@ describe('CheckInScreen', () => {
           today={closedSat}
           state="before"
           closedDayActivity="medical"
-        />,
+        />
       );
       expect(screen.getByText(/記録済み/)).toBeInTheDocument();
     });
@@ -824,7 +810,7 @@ describe('CheckInScreen', () => {
       };
       render(<CheckInScreen today={lastFri} state="before" />);
       expect(
-        screen.getByText(/本日は事務所休業日のため打刻できません/),
+        screen.getByText(/本日は事務所休業日のため打刻できません/)
       ).toBeInTheDocument();
       // 通常打刻ボタン (planned=office なので isOff 分岐ではない) も disabled
       const btn = screen.getByRole('button', { name: /通所打刻/ });
@@ -840,10 +826,10 @@ describe('CheckInScreen', () => {
       };
       render(<CheckInScreen today={mon} state="before" />);
       expect(
-        screen.queryByText(/本日は事務所休業日のため打刻できません/),
+        screen.queryByText(/本日は事務所休業日のため打刻できません/)
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('button', { name: '自宅で過ごした' }),
+        screen.queryByRole('button', { name: '自宅で過ごした' })
       ).not.toBeInTheDocument();
     });
 
@@ -861,7 +847,7 @@ describe('CheckInScreen', () => {
           today={mon}
           state="before"
           closedDayActivity="home_rest"
-        />,
+        />
       );
       expect(screen.queryByText(/記録済み/)).not.toBeInTheDocument();
     });
@@ -872,7 +858,7 @@ describe('CheckInScreen', () => {
       const t: TodayCard = { mode: 'office', band: 'full', dayLabel: '今' };
       render(<CheckInScreen today={t} state="before" />);
       expect(
-        screen.queryByText(/本日は事務所休業日のため打刻できません/),
+        screen.queryByText(/本日は事務所休業日のため打刻できません/)
       ).not.toBeInTheDocument();
       const btn = screen.getByRole('button', { name: /通所打刻/ });
       expect(btn).not.toBeDisabled();
@@ -895,7 +881,7 @@ describe('CheckInScreen', () => {
           state="before"
           closedDayActivity="home_rest"
           onClosedDayActivity={onClosedDayActivity}
-        />,
+        />
       );
       await user.click(screen.getByRole('button', { name: '外出した' }));
       expect(onClosedDayActivity).toHaveBeenLastCalledWith('outing');
@@ -964,7 +950,7 @@ describe('例外打刻フローの永続化 (T6/T7)', () => {
           5: { mode: 'off', band: 'full' },
           6: { mode: 'off', band: 'full' },
         },
-      }),
+      })
     );
     render(<App />);
 
@@ -999,46 +985,46 @@ describe('HomeScreen — T6 今日/昨日の記録導線ボタン文言', () => 
   it('今日なし × 昨日なし: どちらも「記録する」', () => {
     render(<HomeScreen hasTodayRecord={false} hasYesterdayRecord={false} />);
     expect(
-      screen.getByRole('button', { name: /今日の様子を記録する/ }),
+      screen.getByRole('button', { name: /今日の様子を記録する/ })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /昨日の様子を記録する/ }),
+      screen.getByRole('button', { name: /昨日の様子を記録する/ })
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /今日の記録を修正する/ }),
+      screen.queryByRole('button', { name: /今日の記録を修正する/ })
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /昨日の記録を修正する/ }),
+      screen.queryByRole('button', { name: /昨日の記録を修正する/ })
     ).not.toBeInTheDocument();
   });
 
   it('今日あり × 昨日なし: 今日は「修正する」、昨日は「記録する」', () => {
     render(<HomeScreen hasTodayRecord={true} hasYesterdayRecord={false} />);
     expect(
-      screen.getByRole('button', { name: /今日の記録を修正する/ }),
+      screen.getByRole('button', { name: /今日の記録を修正する/ })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /昨日の様子を記録する/ }),
+      screen.getByRole('button', { name: /昨日の様子を記録する/ })
     ).toBeInTheDocument();
   });
 
   it('今日なし × 昨日あり: 今日は「記録する」、昨日は「修正する」', () => {
     render(<HomeScreen hasTodayRecord={false} hasYesterdayRecord={true} />);
     expect(
-      screen.getByRole('button', { name: /今日の様子を記録する/ }),
+      screen.getByRole('button', { name: /今日の様子を記録する/ })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /昨日の記録を修正する/ }),
+      screen.getByRole('button', { name: /昨日の記録を修正する/ })
     ).toBeInTheDocument();
   });
 
   it('今日あり × 昨日あり: どちらも「修正する」', () => {
     render(<HomeScreen hasTodayRecord={true} hasYesterdayRecord={true} />);
     expect(
-      screen.getByRole('button', { name: /今日の記録を修正する/ }),
+      screen.getByRole('button', { name: /今日の記録を修正する/ })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /昨日の記録を修正する/ }),
+      screen.getByRole('button', { name: /昨日の記録を修正する/ })
     ).toBeInTheDocument();
   });
 
@@ -1054,20 +1040,20 @@ describe('HomeScreen — T6 今日/昨日の記録導線ボタン文言', () => 
         hasYesterdayRecord
         onLogMood={onLogMood}
         onLogYesterday={onLogYesterday}
-      />,
+      />
     );
 
     await user.click(
-      screen.getByRole('button', { name: /今日の記録を修正する/ }),
+      screen.getByRole('button', { name: /今日の記録を修正する/ })
     );
     expect(
-      screen.getByText(/今日はすでに記録済みです。内容を修正しますか？/),
+      screen.getByText(/今日はすでに記録済みです。内容を修正しますか？/)
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'キャンセル' }));
     // 確認ブロックが閉じる
     expect(
-      screen.queryByText(/今日はすでに記録済みです/),
+      screen.queryByText(/今日はすでに記録済みです/)
     ).not.toBeInTheDocument();
     // 遷移コールバックは呼ばれていない
     expect(onLogMood).not.toHaveBeenCalled();
@@ -1077,12 +1063,10 @@ describe('HomeScreen — T6 今日/昨日の記録導線ボタン文言', () => 
   it('既存の今日ボタン → 確認 → 「修正する」で onLogMood が呼ばれる', async () => {
     const user = userEvent.setup();
     const onLogMood = vi.fn();
-    render(
-      <HomeScreen hasTodayRecord onLogMood={onLogMood} />,
-    );
+    render(<HomeScreen hasTodayRecord onLogMood={onLogMood} />);
 
     await user.click(
-      screen.getByRole('button', { name: /今日の記録を修正する/ }),
+      screen.getByRole('button', { name: /今日の記録を修正する/ })
     );
     await user.click(screen.getByRole('button', { name: '修正する' }));
     expect(onLogMood).toHaveBeenCalledOnce();
@@ -1094,12 +1078,10 @@ describe('HomeScreen — T6 今日/昨日の記録導線ボタン文言', () => 
     render(<HomeScreen hasTodayRecord={false} onLogMood={onLogMood} />);
 
     await user.click(
-      screen.getByRole('button', { name: /今日の様子を記録する/ }),
+      screen.getByRole('button', { name: /今日の様子を記録する/ })
     );
     // インライン確認ブロックは出ない
-    expect(
-      screen.queryByText(/修正しますか？/),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/修正しますか？/)).not.toBeInTheDocument();
     expect(onLogMood).toHaveBeenCalledOnce();
   });
 

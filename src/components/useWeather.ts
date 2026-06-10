@@ -114,9 +114,11 @@ export function useWeather({
 
     // debounce
     setState((prev) =>
-      prev.kind === 'ready' && prev.lat === resolved.lat && prev.lon === resolved.lon
+      prev.kind === 'ready' &&
+      prev.lat === resolved.lat &&
+      prev.lon === resolved.lon
         ? prev
-        : { kind: 'loading', label: resolved.label },
+        : { kind: 'loading', label: resolved.label }
     );
 
     if (timerRef.current) clearTimeout(timerRef.current);

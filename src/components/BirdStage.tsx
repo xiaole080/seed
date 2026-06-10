@@ -7,6 +7,10 @@ interface BirdStageProps {
   species?: EggSpeciesId;
 }
 
-export function BirdStage({ stage, size = 240, species = 'chicken' }: BirdStageProps) {
+export function BirdStage({
+  stage,
+  size = 240,
+  species = 'chicken',
+}: BirdStageProps) {
   return <BirdSpeciesStage species={species} stage={stage} size={size} />;
 }

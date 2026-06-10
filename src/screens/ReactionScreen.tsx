@@ -1,7 +1,11 @@
 import { PALETTE, ROUNDED_FONT, CARD_SHADOW } from '../theme';
 import { PhoneShell } from '../components/PhoneShell';
 import { BackgroundLeaves } from '../components/BackgroundLeaves';
-import { ChickSVG, EggSpeciesSVG, HatchingSVG } from '../components/BirdSpecies';
+import {
+  ChickSVG,
+  EggSpeciesSVG,
+  HatchingSVG,
+} from '../components/BirdSpecies';
 import { dailyWhisperFor } from '../data/stages';
 import { MOODS } from '../data/moods';
 import type { EggSpeciesId, Mood, Stage } from '../data/types';
@@ -34,8 +38,8 @@ export function ReactionScreen({
     mood >= 4
       ? 'いい一日になりそうですね。\n記録してくれてありがとう。'
       : mood === 3
-      ? 'ふつうの日って、じつは大切。\nきょうも来てくれてうれしいです。'
-      : 'よくここまで来ました。\nゆっくり休んでくださいね。';
+        ? 'ふつうの日って、じつは大切。\nきょうも来てくれてうれしいです。'
+        : 'よくここまで来ました。\nゆっくり休んでくださいね。';
   const story = dailyWhisperFor(stage, true);
 
   return (
@@ -208,7 +212,9 @@ export function ReactionScreen({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ fontSize: 26 }}>{moodObj.face}</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{moodObj.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>
+                {moodObj.label}
+              </div>
               <div
                 style={{ fontSize: 11, color: PALETTE.inkSoft, marginTop: 2 }}
               >

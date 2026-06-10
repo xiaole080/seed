@@ -12,7 +12,7 @@ import type { AttendanceMonthlyRecord } from './types';
 
 function att(
   date: string,
-  over: Partial<AttendanceMonthlyRecord> = {},
+  over: Partial<AttendanceMonthlyRecord> = {}
 ): AttendanceMonthlyRecord {
   return {
     localAttendanceId: `att_${date}`,
@@ -41,7 +41,11 @@ describe('getMonthAttendance', () => {
 
   it('保存済みの実打刻を予定より優先する', () => {
     upsertAttendance(
-      att('2026-05-25', { actualMode: 'office', checkIn: '10:02', checkOut: '15:31' }),
+      att('2026-05-25', {
+        actualMode: 'office',
+        checkIn: '10:02',
+        checkOut: '15:31',
+      })
     );
     const rows = getMonthAttendance(DEFAULT_SCHEDULE, 2026, 4);
     const day25 = rows.find((r) => r.date === '2026-05-25');
@@ -67,7 +71,7 @@ describe('recordsToCsv', () => {
   it('1 行目はヘッダ', () => {
     const csv = recordsToCsv([]);
     expect(csv).toBe(
-      'date,weekday,planned_mode,planned_band,actual_mode,check_in,check_out,duration_minutes,missing_clock,edited',
+      'date,weekday,planned_mode,planned_band,actual_mode,check_in,check_out,duration_minutes,missing_clock,edited'
     );
   });
 
@@ -82,7 +86,7 @@ describe('recordsToCsv', () => {
     ]);
     const lines = csv.split('\n');
     expect(lines[1]).toBe(
-      '2026-05-25,Mon,office,full,office,10:02,15:31,329,false,false',
+      '2026-05-25,Mon,office,full,office,10:02,15:31,329,false,false'
     );
   });
 
@@ -91,9 +95,7 @@ describe('recordsToCsv', () => {
       att('2026-05-01', { plannedBand: undefined, plannedMode: 'off' }),
     ]);
     // planned_band, actual_mode, check_in, check_out, duration が空
-    expect(csv.split('\n')[1]).toBe(
-      '2026-05-01,Mon,off,,,,,,false,false',
-    );
+    expect(csv.split('\n')[1]).toBe('2026-05-01,Mon,off,,,,,,false,false');
   });
 
   it('csvEscape: カンマを含む値は引用符でくくる', () => {
@@ -114,13 +116,13 @@ describe('attendanceFilename', () => {
 
   it('ニックネームをファイル名に含める', () => {
     expect(attendanceFilename(2026, 4, 'はる')).toBe(
-      'Seed_attendance_はる_2026-05.csv',
+      'Seed_attendance_はる_2026-05.csv'
     );
   });
 
   it('ファイル名に使えない文字を除去する', () => {
     expect(attendanceFilename(2026, 4, 'a/b c!')).toBe(
-      'Seed_attendance_abc_2026-05.csv',
+      'Seed_attendance_abc_2026-05.csv'
     );
   });
 
@@ -132,16 +134,16 @@ describe('attendanceFilename', () => {
 
   it('除去後に空になるニックネームは付けない', () => {
     expect(attendanceFilename(2026, 4, '!!!')).toBe(
-      'Seed_attendance_2026-05.csv',
+      'Seed_attendance_2026-05.csv'
     );
   });
 });
 
 describe('hasAnyActual', () => {
   it('打刻が 1 件でもあれば true', () => {
-    expect(hasAnyActual([att('2026-05-01'), att('2026-05-02', { checkIn: '9:00' })])).toBe(
-      true,
-    );
+    expect(
+      hasAnyActual([att('2026-05-01'), att('2026-05-02', { checkIn: '9:00' })])
+    ).toBe(true);
   });
 
   it('打刻が皆無なら false', () => {

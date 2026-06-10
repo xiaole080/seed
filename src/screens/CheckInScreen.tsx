@@ -47,8 +47,8 @@ interface CheckInScreenProps {
 
 const CLOSED_DAY_OPTIONS: Array<{ value: ClosedDayActivity; label: string }> = [
   { value: 'home_rest', label: '自宅で過ごした' },
-  { value: 'outing',    label: '外出した' },
-  { value: 'medical',   label: '通院した' },
+  { value: 'outing', label: '外出した' },
+  { value: 'medical', label: '通院した' },
 ];
 
 const TITLE_BY_STATE = {
@@ -111,7 +111,9 @@ export function CheckInScreen({
 
   // T6: お休みの日の例外打刻。ローカル state のみ (localStorage には保存しない)。
   // 「お休みのままにする/やっぱり通所する」の2択で切り替え、画面離脱や翌日には初期状態へ戻る。
-  const [effectiveMode, setEffectiveMode] = useState<AttendanceMode | null>(null);
+  const [effectiveMode, setEffectiveMode] = useState<AttendanceMode | null>(
+    null
+  );
   // today が外側で変わった (日付跨ぎ等) ら例外打刻状態はリセット
   useEffect(() => {
     setEffectiveMode(null);
@@ -123,9 +125,7 @@ export function CheckInScreen({
   // effectiveMode が null にリセットされても、state を根拠に実モード (office) を
   // 表示する。これがないと「お休み」ラベルのまま帰宅打刻ボタンが出ない。
   const viewMode: AttendanceMode =
-    s !== 'before' && planIsOff
-      ? 'office'
-      : (effectiveMode ?? today.mode);
+    s !== 'before' && planIsOff ? 'office' : (effectiveMode ?? today.mode);
   const isOffice = viewMode === 'office';
   const isHome = viewMode === 'home';
   // 「初期の休み2択画面」を出す条件: 予定が休み かつ まだ「やっぱり通所する」を選んでいない
@@ -139,16 +139,16 @@ export function CheckInScreen({
   const heroEmoji = isOff
     ? '🌿'
     : s === 'before'
-    ? isOffice
-      ? '🚪'
-      : isHome
-      ? '🏠'
-      : '🌿'
-    : s === 'checkedIn'
-    ? isOffice
-      ? '✓'
-      : '🏠'
-    : '🌙';
+      ? isOffice
+        ? '🚪'
+        : isHome
+          ? '🏠'
+          : '🌿'
+      : s === 'checkedIn'
+        ? isOffice
+          ? '✓'
+          : '🏠'
+        : '🌙';
 
   const handleCheckIn = () => {
     setS('checkedIn');
@@ -456,8 +456,8 @@ export function CheckInScreen({
             {isOff
               ? 'きょうはお休みの日ですね'
               : planIsOff && effectiveMode != null && s === 'before'
-              ? '今日だけ打刻しますか？'
-              : TITLE_BY_STATE[s][viewMode]}
+                ? '今日だけ打刻しますか？'
+                : TITLE_BY_STATE[s][viewMode]}
           </div>
           {/* T3: checkedOut のとき、打刻時刻レンジを見切れずに添える。 */}
           {s === 'checkedOut' && today.checkInTime && today.checkOutTime && (
@@ -485,8 +485,8 @@ export function CheckInScreen({
             {isOff
               ? 'もし通所する場合は、打刻に進めます'
               : planIsOff && effectiveMode != null && s === 'before'
-              ? '予定はお休みのままです'
-              : `${nickname}さんのペースで大丈夫です。`}
+                ? '予定はお休みのままです'
+                : `${nickname}さんのペースで大丈夫です。`}
           </div>
         </div>
 
@@ -597,7 +597,9 @@ export function CheckInScreen({
                   height: 60,
                   border: 'none',
                   borderRadius: 20,
-                  background: officeClosed ? PALETTE.sageSoft : PALETTE.sageDeep,
+                  background: officeClosed
+                    ? PALETTE.sageSoft
+                    : PALETTE.sageDeep,
                   color: officeClosed ? PALETTE.inkSoft : '#fff',
                   fontSize: 16,
                   fontWeight: 700,
@@ -710,7 +712,9 @@ export function CheckInScreen({
                     marginBottom: 8,
                   }}
                 >
-                  <span style={{ width: 40, color: PALETTE.inkSoft }}>到着</span>
+                  <span style={{ width: 40, color: PALETTE.inkSoft }}>
+                    到着
+                  </span>
                   <input
                     aria-label="到着時刻"
                     type="time"
@@ -831,8 +835,9 @@ export function CheckInScreen({
             {/* T3-B: 「この打刻を取り消す」ボタン + インライン確認ダイアログ。
                 状態が checkedIn / checkedOut のときだけ表示する。
                 §13.2: deleteAttendance(todayISO()) は親側で呼ぶ。 */}
-            {(s === 'checkedIn' || s === 'checkedOut') && !editing && (
-              !confirmingDelete ? (
+            {(s === 'checkedIn' || s === 'checkedOut') &&
+              !editing &&
+              (!confirmingDelete ? (
                 <button
                   onClick={() => setConfirmingDelete(true)}
                   style={{
@@ -878,7 +883,8 @@ export function CheckInScreen({
                       marginBottom: 10,
                     }}
                   >
-                    ※ すでに Google Sheets に送信された記録は、ここで取り消してもシート側には残ります。
+                    ※ すでに Google Sheets
+                    に送信された記録は、ここで取り消してもシート側には残ります。
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
@@ -917,8 +923,7 @@ export function CheckInScreen({
                     </button>
                   </div>
                 </div>
-              )
-            )}
+              ))}
 
             {/* T6: 予定が休み × 例外打刻に進んだ後の「お休みに戻す」リンク。
                 打刻データは触らない (この場で AttendanceMonthlyRecord は消さない)。 */}

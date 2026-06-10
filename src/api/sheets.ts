@@ -30,7 +30,7 @@ import { CATEGORIES } from '../data/moods';
 // `sleep.legacy` は syncHistoryOnce が使う履歴シード専用のキー。
 const ALLOWED_SELECTION_KEYS: ReadonlySet<string> = new Set([
   ...CATEGORIES.flatMap((cat) =>
-    cat.sections.map((sec) => `${cat.id}.${sec.id}`),
+    cat.sections.map((sec) => `${cat.id}.${sec.id}`)
   ),
   'sleep.legacy',
 ]);
@@ -181,14 +181,14 @@ async function _safeText(res: Response): Promise<string> {
 async function postEvent<P>(
   type: SheetEventType,
   payload: P,
-  nickname?: string,
+  nickname?: string
 ): Promise<void> {
   if (!ENDPOINT) {
     // eslint-disable-next-line no-console
     console.info(
       '[sheets] VITE_SHEETS_ENDPOINT が未設定です。' +
         '.env.local を作成して dev server を再起動してください',
-      { type, payload },
+      { type, payload }
     );
     return;
   }
@@ -307,7 +307,7 @@ export interface TaskEventPayload {
  * - 呼び出し側が誤って自由文を載せても、ここで確実に落とす二重防衛。
  */
 export function sanitizeTaskPayload(
-  payload: Record<string, unknown>,
+  payload: Record<string, unknown>
 ): TaskEventPayload {
   const rawTaskId = payload['taskId'];
   const rawImpact = payload['impact'];
@@ -321,13 +321,13 @@ export function sanitizeTaskPayload(
 
 export function logTask(
   payload: TaskEventPayload | Record<string, unknown>,
-  nickname?: string,
+  nickname?: string
 ) {
   // 二重防衛: name / text などの自由文が混入していても sanitize で除去する。
   return postEvent(
     'task',
     sanitizeTaskPayload(payload as Record<string, unknown>),
-    nickname,
+    nickname
   );
 }
 
@@ -356,7 +356,7 @@ export interface SettingsEventPayload {
  * 不正な field / value を受け取った場合は `null` を返し、`logSettings` 側で送信を止める。
  */
 export function sanitizeSettingsPayload(
-  payload: SettingsEventPayload,
+  payload: SettingsEventPayload
 ): SettingsEventPayload | null {
   const { field, value } = payload;
   switch (field) {
@@ -451,25 +451,51 @@ export async function syncHistoryOnce(nickname?: string): Promise<void> {
       mood: d.mood,
       primaryInfluence: [],
       selections: {
-        'sleep.legacy':    SLEEP_LABEL[d.sleep],
+        'sleep.legacy': SLEEP_LABEL[d.sleep],
         'meal.mealsTaken': d.tags.filter((t) =>
-          ['breakfast', 'lunch', 'dinner', 'snack'].includes(t),
+          ['breakfast', 'lunch', 'dinner', 'snack'].includes(t)
         ),
         'exercise.activityFlags': d.tags.filter((t) =>
-          ['walk', 'stretch', 'commute', 'house', 'rest'].includes(t),
+          ['walk', 'stretch', 'commute', 'house', 'rest'].includes(t)
         ),
-        'condition.conditionFlags':   [],
-        'meds.medicationStatus':      MEDS_LABEL[d.meds],
+        'condition.conditionFlags': [],
+        'meds.medicationStatus': MEDS_LABEL[d.meds],
       },
     };
     if (await _seedPost('mood', ts, moodPayload, nickname)) okCount++;
     else failCount++;
     if (d.attended) {
-      const checkin: CheckInPayload = { mode: 'office', band: 'full', state: 'checkedIn', time: '9:42' };
-      const checkout: CheckInPayload = { mode: 'office', band: 'full', state: 'checkedOut', time: '15:08' };
-      if (await _seedPost('checkin', _daysAgoIso(d.dayOffset, '09:42:00'), checkin, nickname)) okCount++;
+      const checkin: CheckInPayload = {
+        mode: 'office',
+        band: 'full',
+        state: 'checkedIn',
+        time: '9:42',
+      };
+      const checkout: CheckInPayload = {
+        mode: 'office',
+        band: 'full',
+        state: 'checkedOut',
+        time: '15:08',
+      };
+      if (
+        await _seedPost(
+          'checkin',
+          _daysAgoIso(d.dayOffset, '09:42:00'),
+          checkin,
+          nickname
+        )
+      )
+        okCount++;
       else failCount++;
-      if (await _seedPost('checkout', _daysAgoIso(d.dayOffset, '15:08:00'), checkout, nickname)) okCount++;
+      if (
+        await _seedPost(
+          'checkout',
+          _daysAgoIso(d.dayOffset, '15:08:00'),
+          checkout,
+          nickname
+        )
+      )
+        okCount++;
       else failCount++;
     }
   }
@@ -503,7 +529,7 @@ async function _seedPost<P>(
   type: SheetEventType,
   ts: string,
   payload: P,
-  nickname?: string,
+  nickname?: string
 ): Promise<boolean> {
   const event: SheetEvent<P> = {
     type,

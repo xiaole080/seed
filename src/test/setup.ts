@@ -26,7 +26,7 @@ Object.defineProperty(URL, 'revokeObjectURL', {
 globalThis.fetch = (() => {
   throw new Error(
     'テスト中のネットワークアクセスは禁止されています。' +
-      'fetch を使うテストは vi.stubGlobal("fetch", ...) で明示的にスタブしてください。',
+      'fetch を使うテストは vi.stubGlobal("fetch", ...) で明示的にスタブしてください。'
   );
 }) as typeof fetch;
 

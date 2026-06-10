@@ -80,12 +80,19 @@ export function buildDailyRecord(args: BuildDailyArgs): StoredDailyRecord {
 
   // --- sleep ---
   let sleep: StoredDailyRecord['sleep'];
-  const sleepKeys = ['sleep.bedtime', 'sleep.wakeTime', 'sleep.nightAwakenings', 'sleep.issues'];
+  const sleepKeys = [
+    'sleep.bedtime',
+    'sleep.wakeTime',
+    'sleep.nightAwakenings',
+    'sleep.issues',
+  ];
   if (sleepKeys.some(has)) {
     sleep = {
       bedtime: str('sleep.bedtime'),
       wakeTime: str('sleep.wakeTime'),
-      nightAwakenings: str('sleep.nightAwakenings') as NightAwakenings | undefined,
+      nightAwakenings: str('sleep.nightAwakenings') as
+        | NightAwakenings
+        | undefined,
       sleepIssues: arr('sleep.issues') as SleepIssue[],
       otherText: otherTextFor('sleep'),
     };
@@ -102,9 +109,9 @@ export function buildDailyRecord(args: BuildDailyArgs): StoredDailyRecord {
       mealStatus: str('meal.mealStatus') as MealStatus | undefined,
       mealsTaken: {
         breakfast: mealsTakenArr.includes('breakfast'),
-        lunch:     mealsTakenArr.includes('lunch'),
-        dinner:    mealsTakenArr.includes('dinner'),
-        snack:     mealsTakenArr.includes('snack'),
+        lunch: mealsTakenArr.includes('lunch'),
+        dinner: mealsTakenArr.includes('dinner'),
+        snack: mealsTakenArr.includes('snack'),
         hydration: mealsTakenArr.includes('hydration'),
       },
       causes: arr('meal.causes'),
@@ -167,13 +174,13 @@ export function buildDailyRecord(args: BuildDailyArgs): StoredDailyRecord {
     noRecord: false,
     skippedMood: false, // mood は必須入力なので常に false
     skippedPrimaryInfluence: args.primaryInfluence.length === 0,
-    skippedSleep:      enabledHasCategory('sleep')     && !sleep,
-    skippedMeal:       enabledHasCategory('meal')      && !meal,
-    skippedExercise:   enabledHasCategory('exercise')  && !exercise,
-    skippedCondition:  enabledHasCategory('condition') && !condition,
-    skippedMedication: enabledHasCategory('meds')      && !medication,
+    skippedSleep: enabledHasCategory('sleep') && !sleep,
+    skippedMeal: enabledHasCategory('meal') && !meal,
+    skippedExercise: enabledHasCategory('exercise') && !exercise,
+    skippedCondition: enabledHasCategory('condition') && !condition,
+    skippedMedication: enabledHasCategory('meds') && !medication,
     skippedAttendance: false, // 別ストアで判定する
-    skippedNote:       !finalNote || finalNote.trim() === '',
+    skippedNote: !finalNote || finalNote.trim() === '',
   };
 
   const now = nowISO();
@@ -182,7 +189,8 @@ export function buildDailyRecord(args: BuildDailyArgs): StoredDailyRecord {
       ? args.influenceOtherText.slice(0, 100)
       : undefined;
   return {
-    localRecordId: args.previous?.localRecordId ?? `daily_${date}_${Date.now()}`,
+    localRecordId:
+      args.previous?.localRecordId ?? `daily_${date}_${Date.now()}`,
     date,
     mood: args.mood,
     primaryInfluence: args.primaryInfluence,

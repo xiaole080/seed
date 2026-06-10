@@ -35,7 +35,7 @@ export function computeRoutineStreak(
   routine: Routine,
   logs: RoutineLog | null,
   schedule: Schedule,
-  today: string,
+  today: string
 ): number {
   if (routine.paused) return 0;
 

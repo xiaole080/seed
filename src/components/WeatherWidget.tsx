@@ -113,16 +113,21 @@ export function WeatherWidget({
   const standardPct = ((1013 - 980) / 50) * 100;
 
   const trendSymbol = s.trend === 'up' ? '↑' : s.trend === 'down' ? '↓' : '→';
-  const trendLabel = s.trend === 'up' ? '上昇' : s.trend === 'down' ? '下降' : '安定';
+  const trendLabel =
+    s.trend === 'up' ? '上昇' : s.trend === 'down' ? '下降' : '安定';
 
   const careBg =
-    care.tone === 'warn' ? '#FAE3D8'
-      : care.tone === 'good' ? PALETTE.sageSoft
-      : PALETTE.amberSoft;
+    care.tone === 'warn'
+      ? '#FAE3D8'
+      : care.tone === 'good'
+        ? PALETTE.sageSoft
+        : PALETTE.amberSoft;
   const careFg =
-    care.tone === 'warn' ? '#A86A4A'
-      : care.tone === 'good' ? PALETTE.sageDeep
-      : '#A88458';
+    care.tone === 'warn'
+      ? '#A86A4A'
+      : care.tone === 'good'
+        ? PALETTE.sageDeep
+        : '#A88458';
 
   return (
     <Card>
@@ -180,11 +185,17 @@ export function WeatherWidget({
             marginBottom: 4,
           }}
         >
-          <div style={{ fontSize: 10, color: PALETTE.inkSoft, fontWeight: 600 }}>
+          <div
+            style={{ fontSize: 10, color: PALETTE.inkSoft, fontWeight: 600 }}
+          >
             気圧{' '}
-            <span style={{ marginLeft: 4, color: PALETTE.ink, fontWeight: 700 }}>
+            <span
+              style={{ marginLeft: 4, color: PALETTE.ink, fontWeight: 700 }}
+            >
               {Math.round(s.pressure)}
-              <span style={{ fontSize: 9, color: PALETTE.inkSoft, fontWeight: 500 }}>
+              <span
+                style={{ fontSize: 9, color: PALETTE.inkSoft, fontWeight: 500 }}
+              >
                 {' '}
                 hPa
               </span>
@@ -198,8 +209,8 @@ export function WeatherWidget({
                 s.trend === 'down'
                   ? '#C68A6A'
                   : s.trend === 'up'
-                  ? PALETTE.sageDeep
-                  : PALETTE.inkSoft,
+                    ? PALETTE.sageDeep
+                    : PALETTE.inkSoft,
             }}
           >
             {trendSymbol} {trendLabel}

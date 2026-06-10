@@ -39,7 +39,7 @@ const NO_MISSING: MissingnessFlags = {
 
 function daily(
   date: string,
-  over: Partial<StoredDailyRecord> = {},
+  over: Partial<StoredDailyRecord> = {}
 ): StoredDailyRecord {
   return {
     localRecordId: `r_${date}`,
@@ -55,7 +55,7 @@ function daily(
 
 function att(
   date: string,
-  over: Partial<AttendanceMonthlyRecord> = {},
+  over: Partial<AttendanceMonthlyRecord> = {}
 ): AttendanceMonthlyRecord {
   return {
     localAttendanceId: `att_${date}`,
@@ -230,7 +230,7 @@ describe('countRecordedDaysInRange', () => {
         daily('2026-05-20'),
         daily('2026-05-21'),
         daily('2026-05-21'),
-      ]),
+      ])
     ).toBe(2);
   });
 
@@ -289,7 +289,9 @@ describe('moodSeries', () => {
   });
 
   it('NaN の mood は範囲チェックで除外される', () => {
-    const out = moodSeries([daily('2026-05-20', { mood: NaN as unknown as Mood })]);
+    const out = moodSeries([
+      daily('2026-05-20', { mood: NaN as unknown as Mood }),
+    ]);
     expect(out).toEqual([]);
   });
 });
@@ -300,7 +302,7 @@ describe('averageMood', () => {
       averageMood([
         daily('2026-05-20', { mood: 3 }),
         daily('2026-05-21', { mood: 4 }),
-      ]),
+      ])
     ).toBe(3.5);
   });
 
@@ -310,7 +312,7 @@ describe('averageMood', () => {
         daily('2026-05-20', { mood: 1 }),
         daily('2026-05-21', { mood: 2 }),
         daily('2026-05-22', { mood: 4 }),
-      ]),
+      ])
     ).toBe(2.3);
   });
 
@@ -324,7 +326,7 @@ describe('averageMood', () => {
         daily('2026-05-20', {
           missingness: { ...NO_MISSING, skippedMood: true },
         }),
-      ]),
+      ])
     ).toBeNull();
   });
 
@@ -338,7 +340,7 @@ describe('averageMood', () => {
         daily('2026-05-20', { mood: 3 }),
         daily('2026-05-21', { mood: 3 }),
         daily('2026-05-22', { mood: 3 }),
-      ]),
+      ])
     ).toBe(3);
   });
 });
@@ -381,39 +383,39 @@ describe('influenceRanking', () => {
 describe('classifyAttendance', () => {
   it('実績 (checkIn など) があれば attended', () => {
     expect(classifyAttendance(att('2026-05-20', { checkIn: '09:00' }))).toBe(
-      'attended',
+      'attended'
     );
-    expect(
-      classifyAttendance(att('2026-05-20', { actualMode: 'home' })),
-    ).toBe('attended');
+    expect(classifyAttendance(att('2026-05-20', { actualMode: 'home' }))).toBe(
+      'attended'
+    );
   });
 
   it('予定が休みなら off', () => {
-    expect(
-      classifyAttendance(att('2026-05-20', { plannedMode: 'off' })),
-    ).toBe('off');
+    expect(classifyAttendance(att('2026-05-20', { plannedMode: 'off' }))).toBe(
+      'off'
+    );
   });
 
   it('予定ありで打刻欠落なら unclocked (欠席と断定しない)', () => {
     expect(
       classifyAttendance(
-        att('2026-05-20', { plannedMode: 'office', missingClock: true }),
-      ),
+        att('2026-05-20', { plannedMode: 'office', missingClock: true })
+      )
     ).toBe('unclocked');
   });
 
   it('予定ありで実績未確定なら planned', () => {
     expect(
       classifyAttendance(
-        att('2026-05-20', { plannedMode: 'office', missingClock: false }),
-      ),
+        att('2026-05-20', { plannedMode: 'office', missingClock: false })
+      )
     ).toBe('planned');
   });
 
   it('checkOut だけでも実績ありとして attended', () => {
-    expect(
-      classifyAttendance(att('2026-05-20', { checkOut: '15:00' })),
-    ).toBe('attended');
+    expect(classifyAttendance(att('2026-05-20', { checkOut: '15:00' }))).toBe(
+      'attended'
+    );
   });
 
   it('plannedMode が undefined なら off 扱い', () => {
@@ -425,8 +427,8 @@ describe('classifyAttendance', () => {
   it('在宅予定で実績ありなら attended (在宅も実績に含む)', () => {
     expect(
       classifyAttendance(
-        att('2026-05-20', { plannedMode: 'home', actualMode: 'home' }),
-      ),
+        att('2026-05-20', { plannedMode: 'home', actualMode: 'home' })
+      )
     ).toBe('attended');
   });
 });
@@ -610,9 +612,7 @@ describe('記録項目別の傾向集計', () => {
   });
 
   it('mealStats: meal はあるが mealStatus 未設定なら statuses は空', () => {
-    const s = mealStats([
-      daily('2026-05-20', { meal: { mealsTaken: {} } }),
-    ]);
+    const s = mealStats([daily('2026-05-20', { meal: { mealsTaken: {} } })]);
     expect(s.recordedDays).toBe(1);
     expect(s.statuses).toEqual([]);
   });
@@ -645,7 +645,7 @@ describe('rangeOverview', () => {
           sleep: { bedtime: '23:00' },
         }),
       ],
-      [att('2026-05-20', { checkIn: '09:00' })],
+      [att('2026-05-20', { checkIn: '09:00' })]
     );
     expect(ov.recordedDays).toBe(2);
     expect(ov.moodCount).toBe(2);
@@ -678,7 +678,7 @@ describe('rangeOverview', () => {
           missingness: { ...NO_MISSING, skippedMood: true },
         }),
       ],
-      [],
+      []
     );
     expect(ov.recordedDays).toBe(1);
     expect(ov.moodCount).toBe(0);

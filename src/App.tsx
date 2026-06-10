@@ -61,7 +61,7 @@ import { buildDailyRecord } from './data/dailyMapper';
 import { runMigrations } from './data/migrations';
 
 function selectionsToPlain(
-  sel: Record<string, string | null | Set<string>>,
+  sel: Record<string, string | null | Set<string>>
 ): Record<string, string | string[] | null> {
   const out: Record<string, string | string[] | null> = {};
   for (const [k, v] of Object.entries(sel)) {
@@ -137,8 +137,8 @@ const INITIAL_STATE: AppState = {
   showWhisper: true,
 };
 
-const STORAGE_KEY_STATE   = 'seed.app.state.v1';
-const STORAGE_KEY_PHASE   = 'seed.app.phase.v1';
+const STORAGE_KEY_STATE = 'seed.app.state.v1';
+const STORAGE_KEY_PHASE = 'seed.app.phase.v1';
 const STORAGE_KEY_CONSENT = 'seed.consent.v1';
 
 const DEFAULT_CONSENT: ConsentState = {
@@ -170,7 +170,11 @@ function normalizeRegion(raw: unknown): SelectedRegion {
       lat?: number;
       lon?: number;
     };
-    if (r.kind === 'preset' && typeof r.presetId === 'string' && r.presetId in REGIONS) {
+    if (
+      r.kind === 'preset' &&
+      typeof r.presetId === 'string' &&
+      r.presetId in REGIONS
+    ) {
       return { kind: 'preset', presetId: r.presetId as RegionId };
     }
     if (
@@ -195,7 +199,7 @@ function normalizeRegion(raw: unknown): SelectedRegion {
 
 export default function App() {
   const [phase, setPhase] = useState<Phase>(() =>
-    loadJson<Phase>(STORAGE_KEY_PHASE, 'consent'),
+    loadJson<Phase>(STORAGE_KEY_PHASE, 'consent')
   );
   const [consent, setConsent] = useState<ConsentState>(() => {
     // 旧 v1.0 ユーザの consent JSON には weatherApiConsent などの新規 field が
@@ -208,7 +212,11 @@ export default function App() {
   const [route, setRoute] = useState<Route>('home');
   const [state, setState] = useState<AppState>(() => {
     const loaded = loadJson<
-      Partial<AppState> & { region?: unknown; todayMode?: unknown; todayBand?: unknown }
+      Partial<AppState> & {
+        region?: unknown;
+        todayMode?: unknown;
+        todayBand?: unknown;
+      }
     >(STORAGE_KEY_STATE, {});
     // T1: 旧スキーマにあった todayMode / todayBand は派生値化したため捨てる。
     // 既存テスター端末で残っていても無視する (永続化時には自然に消える)。
@@ -223,10 +231,12 @@ export default function App() {
     };
   });
   /** mood 記録の対象日 (YYYY-MM-DD)。home から遷移する時にセット。 */
-  const [moodTargetDate, setMoodTargetDate] = useState<string>(() => todayISO());
+  const [moodTargetDate, setMoodTargetDate] = useState<string>(() =>
+    todayISO()
+  );
   /** mood 記録の対象日タイプ。'today'/'yesterday' どちらから来たか保持。 */
   const [moodTargetType, setMoodTargetType] = useState<'today' | 'yesterday'>(
-    'today',
+    'today'
   );
 
   // ストア書き込み(気分記録/打刻)があるたびに +1 する。
@@ -287,8 +297,8 @@ export default function App() {
   // 鳥バー (totalDays) や streak が再計算されない。dateKey を追加することで
   // 日付跨ぎ後も自然に再評価される。
   const totalDays = useMemo(() => countRecordedDays(), [storeTick, dateKey]);
-  const streak    = useMemo(() => currentStreak(),    [storeTick, dateKey]);
-  const stage     = deriveStage(streak, state.manualStage);
+  const streak = useMemo(() => currentStreak(), [storeTick, dateKey]);
+  const stage = deriveStage(streak, state.manualStage);
 
   // バグ修正: 記録がない日が続いても、過去最大ステージを保持する。
   // 到達した stage を manualStage に自動保存しておくことで、streak が 0 に
@@ -341,10 +351,10 @@ export default function App() {
       rec?.checkOut != null
         ? 'checkedOut'
         : rec?.checkIn != null
-        ? 'checkedIn'
-        : 'before';
+          ? 'checkedIn'
+          : 'before';
     setState((prev) =>
-      prev.attendanceState === next ? prev : { ...prev, attendanceState: next },
+      prev.attendanceState === next ? prev : { ...prev, attendanceState: next }
     );
   }, [dateKey]);
 
@@ -395,7 +405,7 @@ export default function App() {
     bumpStore();
     logCheckIn(
       { mode: actual, band: today.band, state: 'checkedIn', time },
-      state.nickname,
+      state.nickname
     );
   };
 
@@ -419,7 +429,7 @@ export default function App() {
     bumpStore();
     logCheckOut(
       { mode: actual, band: today.band, state: 'checkedOut', time },
-      state.nickname,
+      state.nickname
     );
   };
 
@@ -445,7 +455,11 @@ export default function App() {
     });
     // attendanceState は次のレコード状態に合わせ直す
     const nextState: AttendanceState =
-      checkOut != null ? 'checkedOut' : checkIn != null ? 'checkedIn' : 'before';
+      checkOut != null
+        ? 'checkedOut'
+        : checkIn != null
+          ? 'checkedIn'
+          : 'before';
     update({ attendanceState: nextState });
     bumpStore();
   };
@@ -585,7 +599,7 @@ export default function App() {
               primaryInfluence,
               selections: plain,
             },
-            state.nickname,
+            state.nickname
           );
           setRoute('reaction');
         }}
@@ -670,10 +684,7 @@ export default function App() {
     );
   } else if (route === 'log') {
     inner = (
-      <HistoryScreen
-        recordIds={state.recordIds}
-        onTab={(t) => setRoute(t)}
-      />
+      <HistoryScreen recordIds={state.recordIds} onTab={(t) => setRoute(t)} />
     );
   } else if (route === 'care') {
     inner = (
@@ -703,8 +714,7 @@ export default function App() {
           update({ region: r });
           // Sheets には地域の "種別" だけを送る (custom の name は送らない)。
           // custom の中身 (具体的な地名) はローカル限定として扱う。
-          const summary =
-            r.kind === 'preset' ? r.presetId : 'custom';
+          const summary = r.kind === 'preset' ? r.presetId : 'custom';
           logSettings({ field: 'region', value: summary }, state.nickname);
         }}
         onChangeWeatherConsent={(next) => {
@@ -712,7 +722,7 @@ export default function App() {
           // 同意状態の変更は Sheets に値 (accepted/declined) のみ送る。
           logSettings(
             { field: 'weatherApiConsent', value: next },
-            state.nickname,
+            state.nickname
           );
         }}
         onOpenRegionSearch={() => setRoute('regionSearch')}
@@ -722,7 +732,10 @@ export default function App() {
           update({ recordIds: ids, customRecordItems: customs });
           // 設定変更ログは項目数だけ送る (中身は送らない: customs のラベルは
           // 自由記述に準ずる扱いとしてローカル限定)。
-          logSettings({ field: 'recordIds', value: ids.length }, state.nickname);
+          logSettings(
+            { field: 'recordIds', value: ids.length },
+            state.nickname
+          );
         }}
         onAllDataDeleted={() => {
           // A6: 削除後は同意取り直しから

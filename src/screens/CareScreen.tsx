@@ -9,10 +9,7 @@ import {
   loadCareGoals,
   type ConcernGoal,
 } from '../data/care';
-import {
-  NOTICE_ROUTINES_DISMISSED_KEY,
-  todayISO,
-} from '../data/store';
+import { NOTICE_ROUTINES_DISMISSED_KEY, todayISO } from '../data/store';
 import { DEFAULT_SCHEDULE } from '../data/attendance';
 import { MILESTONES, getMilestone } from '../data/stages';
 import { logTask } from '../api/sheets';
@@ -60,13 +57,12 @@ export function CareScreen({
       ? MILESTONES.find((m) => m.days === milestone.next)
       : null;
   const segStart = milestone.days;
-  const segEnd =
-    milestone.next ?? Math.max(milestone.days + 1, totalDays);
+  const segEnd = milestone.next ?? Math.max(milestone.days + 1, totalDays);
   const segPct =
     milestone.next != null
       ? Math.min(
           100,
-          Math.max(0, ((totalDays - segStart) / (segEnd - segStart)) * 100),
+          Math.max(0, ((totalDays - segStart) / (segEnd - segStart)) * 100)
         )
       : 100;
   const remaining =
@@ -77,34 +73,38 @@ export function CareScreen({
   // ② Routine
   const [routines, setRoutines] = useState<Routine[]>(() => loadRoutines());
   const [routineLogs, setRoutineLogs] = useState<RoutineLog>(() =>
-    loadRoutineLogs(),
+    loadRoutineLogs()
   );
 
   // ③ OneOff
   const [oneoffs, setOneoffs] = useState<OneOffTask[]>(() =>
-    getOneOffTasksForDate(today),
+    getOneOffTasksForDate(today)
   );
   const [seeds, setSeeds] = useState(() =>
-    getOneOffTasksForDate(today).reduce((acc, t) => acc + (t.done ? 1 : 0), 0),
+    getOneOffTasksForDate(today).reduce((acc, t) => acc + (t.done ? 1 : 0), 0)
   );
   const [recentReward, setRecentReward] = useState<{
     id: string;
     amount: number;
   } | null>(null);
-  const [confirmDeleteOneoff, setConfirmDeleteOneoff] = useState<string | null>(null);
+  const [confirmDeleteOneoff, setConfirmDeleteOneoff] = useState<string | null>(
+    null
+  );
 
   // ④ Concern
   const [concerns, setConcerns] = useState<ConcernGoal[]>(
-    () => loadCareGoals().concernGoals,
+    () => loadCareGoals().concernGoals
   );
-  const [confirmDeleteConcern, setConfirmDeleteConcern] = useState<string | null>(null);
+  const [confirmDeleteConcern, setConfirmDeleteConcern] = useState<
+    string | null
+  >(null);
 
   // FAB ダイアログ
   const [fabOpen, setFabOpen] = useState(false);
 
   // 初回お知らせバナー
   const [noticeOpen, setNoticeOpen] = useState(
-    () => !loadJson<boolean>(NOTICE_ROUTINES_DISMISSED_KEY, false),
+    () => !loadJson<boolean>(NOTICE_ROUTINES_DISMISSED_KEY, false)
   );
 
   // 日付が変わったら今日分の OneOff を取り直す
@@ -150,7 +150,7 @@ export function CareScreen({
     const nextDone = !t.done;
     updateOneOffTask(t.id, { done: nextDone });
     setOneoffs((ts) =>
-      ts.map((x) => (x.id === t.id ? { ...x, done: nextDone } : x)),
+      ts.map((x) => (x.id === t.id ? { ...x, done: nextDone } : x))
     );
     if (nextDone) {
       const reward = 1;
@@ -158,7 +158,7 @@ export function CareScreen({
       setRecentReward({ id: t.id, amount: reward });
       setTimeout(
         () => setRecentReward((r) => (r && r.id === t.id ? null : r)),
-        1800,
+        1800
       );
     } else {
       setSeeds((s) => Math.max(0, s - 1));
@@ -323,10 +323,7 @@ export function CareScreen({
       {/* FAB */}
       <FloatingAddButton onClick={() => setFabOpen(true)} />
       {fabOpen && (
-        <FabDialog
-          onCancel={() => setFabOpen(false)}
-          onAdd={onFabAdd}
-        />
+        <FabDialog onCancel={() => setFabOpen(false)} onAdd={onFabAdd} />
       )}
 
       <BottomTabs active="care" onChange={onTab} />
@@ -351,7 +348,9 @@ function NoticeBanner({ onDismiss }: { onDismiss: () => void }) {
       }}
     >
       <div style={{ fontSize: 18, lineHeight: 1, marginTop: 2 }}>🌱</div>
-      <div style={{ flex: 1, fontSize: 12, lineHeight: 1.6, color: PALETTE.ink }}>
+      <div
+        style={{ flex: 1, fontSize: 12, lineHeight: 1.6, color: PALETTE.ink }}
+      >
         <div style={{ fontWeight: 700, marginBottom: 2 }}>
           『まいにちのリズム』が追加されました
         </div>
@@ -406,9 +405,7 @@ function RelationshipSection({
       <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>
         {eggName ? `${eggName}との関係` : '鳥との関係'}
       </div>
-      <div
-        style={{ fontSize: 11, color: PALETTE.inkSoft, marginBottom: 10 }}
-      >
+      <div style={{ fontSize: 11, color: PALETTE.inkSoft, marginBottom: 10 }}>
         累計 {totalDays} 日の記録から
       </div>
       <div
@@ -480,8 +477,7 @@ function RelationshipSection({
             <span>もう、ことばでは言えない関係になりました。</span>
           ) : (
             <span>
-              あと{' '}
-              <b style={{ color: PALETTE.sageDeep }}>{remaining}日</b> で『
+              あと <b style={{ color: PALETTE.sageDeep }}>{remaining}日</b> で『
               {nextLabel}』
             </span>
           )}
@@ -516,7 +512,14 @@ function RoutineSection({
   return (
     <div style={{ marginTop: 22 }}>
       <div style={{ fontSize: 14, fontWeight: 700 }}>🌱 まいにちのリズム</div>
-      <div style={{ fontSize: 11, color: PALETTE.inkSoft, marginTop: 2, marginBottom: 10 }}>
+      <div
+        style={{
+          fontSize: 11,
+          color: PALETTE.inkSoft,
+          marginTop: 2,
+          marginBottom: 10,
+        }}
+      >
         つづけたいことを、ゆっくり育てる場所
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -864,8 +867,7 @@ function RoutineEditPanel({
               flex: 1,
               height: 30,
               border: 'none',
-              background:
-                frequency === f ? PALETTE.sageDeep : PALETTE.sageSoft,
+              background: frequency === f ? PALETTE.sageDeep : PALETTE.sageSoft,
               color: frequency === f ? '#fff' : PALETTE.inkSoft,
               borderRadius: 8,
               fontSize: 11,
@@ -1004,7 +1006,14 @@ function OneOffSection({
           <span>{seeds} たね</span>
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+          marginTop: 10,
+        }}
+      >
         {tasks.length === 0 ? (
           <div
             style={{
@@ -1254,8 +1263,17 @@ function ConcernSection({
 }: ConcernSectionProps) {
   return (
     <div style={{ marginTop: 22 }}>
-      <div style={{ fontSize: 14, fontWeight: 700 }}>✨ いつかやってみたいこと</div>
-      <div style={{ fontSize: 11, color: PALETTE.inkSoft, marginTop: 2, marginBottom: 10 }}>
+      <div style={{ fontSize: 14, fontWeight: 700 }}>
+        ✨ いつかやってみたいこと
+      </div>
+      <div
+        style={{
+          fontSize: 11,
+          color: PALETTE.inkSoft,
+          marginTop: 2,
+          marginBottom: 10,
+        }}
+      >
         すぐじゃなくていい、心にあること
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

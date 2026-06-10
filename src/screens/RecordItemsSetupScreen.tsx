@@ -58,7 +58,9 @@ export function RecordItemsSetupScreen({
         }}
       >
         <div style={{ marginTop: 14, marginBottom: 4 }}>
-          <div style={{ fontSize: 12, color: PALETTE.inkSoft, marginBottom: 4 }}>
+          <div
+            style={{ fontSize: 12, color: PALETTE.inkSoft, marginBottom: 4 }}
+          >
             ステップ 4 / 4
           </div>
           <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.4 }}>
@@ -91,7 +93,9 @@ export function RecordItemsSetupScreen({
         >
           おすすめ
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}
+        >
           {allItems.map((p) => {
             const sel = ids.has(p.id);
             return (

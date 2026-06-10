@@ -4,7 +4,9 @@ interface BackgroundLeavesProps {
   tint?: string;
 }
 
-export function BackgroundLeaves({ tint = PALETTE.sageSoft }: BackgroundLeavesProps) {
+export function BackgroundLeaves({
+  tint = PALETTE.sageSoft,
+}: BackgroundLeavesProps) {
   return (
     <svg
       viewBox="0 0 390 780"
@@ -19,10 +21,10 @@ export function BackgroundLeaves({ tint = PALETTE.sageSoft }: BackgroundLeavesPr
       }}
       aria-hidden="true"
     >
-      <circle cx="-30"  cy="120" r="120" fill={tint} />
-      <circle cx="420"  cy="240" r="90"  fill={tint} />
-      <circle cx="60"   cy="700" r="140" fill={tint} />
-      <circle cx="380"  cy="640" r="70"  fill={tint} />
+      <circle cx="-30" cy="120" r="120" fill={tint} />
+      <circle cx="420" cy="240" r="90" fill={tint} />
+      <circle cx="60" cy="700" r="140" fill={tint} />
+      <circle cx="380" cy="640" r="70" fill={tint} />
     </svg>
   );
 }

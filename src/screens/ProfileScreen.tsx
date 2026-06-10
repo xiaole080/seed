@@ -122,7 +122,9 @@ export function ProfileScreen({
             🐥
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: PALETTE.inkSoft }}>ニックネーム</div>
+            <div style={{ fontSize: 11, color: PALETTE.inkSoft }}>
+              ニックネーム
+            </div>
             <input
               value={nick}
               onChange={(e) => {
@@ -154,7 +156,9 @@ export function ProfileScreen({
           }}
         >
           <div style={{ fontSize: 13, fontWeight: 700 }}>天気・気圧の地域</div>
-          <div style={{ fontSize: 11, color: PALETTE.inkSoft }}>ホームに表示</div>
+          <div style={{ fontSize: 11, color: PALETTE.inkSoft }}>
+            ホームに表示
+          </div>
         </div>
         <div style={{ marginBottom: 12 }}>
           <RegionPicker
@@ -211,7 +215,9 @@ export function ProfileScreen({
           }}
         >
           <div style={{ fontSize: 13, fontWeight: 700 }}>通所のよてい</div>
-          <div style={{ fontSize: 11, color: PALETTE.inkSoft }}>タップして変更</div>
+          <div style={{ fontSize: 11, color: PALETTE.inkSoft }}>
+            タップして変更
+          </div>
         </div>
 
         <AttendanceSetupScreen initial={schedule} embedded />
@@ -253,7 +259,7 @@ function AttendanceExportCard({
 
   const records = useMemo(
     () => getMonthAttendance(schedule, year, monthIndex0),
-    [schedule, year, monthIndex0],
+    [schedule, year, monthIndex0]
   );
   const hasActual = hasAnyActual(records);
 
@@ -474,7 +480,8 @@ function WeatherConsentToggle({
           <strong>天気と気圧を表示する</strong>
           <br />
           <span style={{ fontSize: 11, color: PALETTE.inkSoft }}>
-            選んだ地域の天気を Open-Meteo から取り寄せます。送るのは区市町村レベルのだいたいの位置だけで、体調や自由記述は送りません。いつでもオフにできます。
+            選んだ地域の天気を Open-Meteo
+            から取り寄せます。送るのは区市町村レベルのだいたいの位置だけで、体調や自由記述は送りません。いつでもオフにできます。
           </span>
         </span>
       </label>

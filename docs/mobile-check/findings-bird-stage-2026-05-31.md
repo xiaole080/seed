@@ -11,22 +11,22 @@
 
 ## AC 確認結果
 
-| AC | 操作（vitest 経由） | 期待 | 結果 |
-|----|---|---|---|
-| **AC1** | localStorage を全クリア → 同意フロー → ホーム | 鳥は卵 (stage=0)、species=chicken | ✅ vitest で `state.manualStage===0 && state.eggSpecies==='chicken'` 確認 |
-| **AC2** | `seed.app.state.v1` に `manualStage=2` 直接編集 → リロード | 鳥は雛のまま（卵に戻らない） | ✅ 既存テスト「manualStage=3 で起動 → streak=0 でも 3 のまま」が単調増加性を担保。雛(2) と若鳥(3) は同じ後退防止性質を共有 |
-| **AC3** | `seed.app.state.v1` に `eggSpecies='robin'` 編集 → 30 日後 (`vi.setSystemTime`) | 鳥は robin の若鳥、species 保持 | ✅ vitest で `state.eggSpecies==='robin' && state.manualStage===3` 確認 |
-| **AC4** | 今日の記録で成長条件を満たす | 雛 → 若鳥 | ✅ `deriveStage` 純関数テストでカバー（既存 `stages.test.ts`） |
-| **AC5** | 雛で記録なし日が続く | 前進判定は走らない | ✅ 構造的保証：`manualStage` は単調増加 useEffect のみで更新、後退経路が存在しない |
-| **AC6** | データ削除 | 卵に戻る、species 初期値 (chicken) に戻る | ✅ vitest で `deleteAllLocalData()` → 再 render → 初期値書き戻し確認 |
+| AC      | 操作（vitest 経由）                                                             | 期待                                      | 結果                                                                                                                       |
+| ------- | ------------------------------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **AC1** | localStorage を全クリア → 同意フロー → ホーム                                   | 鳥は卵 (stage=0)、species=chicken         | ✅ vitest で `state.manualStage===0 && state.eggSpecies==='chicken'` 確認                                                  |
+| **AC2** | `seed.app.state.v1` に `manualStage=2` 直接編集 → リロード                      | 鳥は雛のまま（卵に戻らない）              | ✅ 既存テスト「manualStage=3 で起動 → streak=0 でも 3 のまま」が単調増加性を担保。雛(2) と若鳥(3) は同じ後退防止性質を共有 |
+| **AC3** | `seed.app.state.v1` に `eggSpecies='robin'` 編集 → 30 日後 (`vi.setSystemTime`) | 鳥は robin の若鳥、species 保持           | ✅ vitest で `state.eggSpecies==='robin' && state.manualStage===3` 確認                                                    |
+| **AC4** | 今日の記録で成長条件を満たす                                                    | 雛 → 若鳥                                 | ✅ `deriveStage` 純関数テストでカバー（既存 `stages.test.ts`）                                                             |
+| **AC5** | 雛で記録なし日が続く                                                            | 前進判定は走らない                        | ✅ 構造的保証：`manualStage` は単調増加 useEffect のみで更新、後退経路が存在しない                                         |
+| **AC6** | データ削除                                                                      | 卵に戻る、species 初期値 (chicken) に戻る | ✅ vitest で `deleteAllLocalData()` → 再 render → 初期値書き戻し確認                                                       |
 
 ## 3 viewport (375 / 390 / 412) への影響
 
-| viewport | 影響有無 |
-|---|---|
+| viewport        | 影響有無                                    |
+| --------------- | ------------------------------------------- |
 | iPhone SE (375) | 影響なし（コード変更はコメント+テストのみ） |
-| iPhone 13 (390) | 影響なし |
-| Pixel 5 (412) | 影響なし |
+| iPhone 13 (390) | 影響なし                                    |
+| Pixel 5 (412)   | 影響なし                                    |
 
 `docs/mobile-check/README.md` §2 の回帰チェック項目（横スクロール / タップ領域 44px / キーボード挙動 / セーフエリア）に対する回帰は発生しない。
 

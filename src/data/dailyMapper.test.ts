@@ -52,11 +52,11 @@ describe('buildDailyRecord — 最小入力', () => {
   it('primaryInfluence 未選択なら skippedPrimaryInfluence が立つ', () => {
     expect(
       buildDailyRecord(args({ primaryInfluence: [] })).missingness
-        .skippedPrimaryInfluence,
+        .skippedPrimaryInfluence
     ).toBe(true);
     expect(
       buildDailyRecord(args({ primaryInfluence: ['sleep'] })).missingness
-        .skippedPrimaryInfluence,
+        .skippedPrimaryInfluence
     ).toBe(false);
   });
 });
@@ -71,7 +71,7 @@ describe('buildDailyRecord — 詳細セクション展開', () => {
           'sleep.nightAwakenings': 'once',
           'sleep.issues': ['bad_dreams', 'daytime_sleepiness'],
         },
-      }),
+      })
     );
     expect(rec.sleep).toEqual({
       bedtime: '23:00',
@@ -95,7 +95,7 @@ describe('buildDailyRecord — 詳細セクション展開', () => {
           'meal.mealsTaken': ['breakfast', 'dinner'],
           'meal.mealStatus': 'less',
         },
-      }),
+      })
     );
     expect(rec.meal?.mealsTaken).toEqual({
       breakfast: true,
@@ -115,7 +115,7 @@ describe('buildDailyRecord — 詳細セクション展開', () => {
           'condition.conditionFlags': ['none'],
           'meds.medicationStatus': 'as_planned',
         },
-      }),
+      })
     );
     expect(rec.exercise?.activityFlags).toEqual(['walk', 'stretch']);
     expect(rec.condition?.conditionFlags).toEqual(['none']);
@@ -196,7 +196,7 @@ describe('buildDailyRecord — 修正保存時の note 温存 (M4)', () => {
 
   it('args.note が undefined (フォームから渡されない) なら previous.note を温存する', () => {
     const rec = buildDailyRecord(
-      args({ date: '2026-05-22', note: undefined, previous: previousWithNote }),
+      args({ date: '2026-05-22', note: undefined, previous: previousWithNote })
     );
     expect(rec.note).toBe('昨日の自由記述');
     expect(rec.missingness.skippedNote).toBe(false);
@@ -204,7 +204,7 @@ describe('buildDailyRecord — 修正保存時の note 温存 (M4)', () => {
 
   it('args.note が空文字 (明示クリア) なら previous.note を削除する', () => {
     const rec = buildDailyRecord(
-      args({ date: '2026-05-22', note: '', previous: previousWithNote }),
+      args({ date: '2026-05-22', note: '', previous: previousWithNote })
     );
     expect(rec.note).toBeUndefined();
     expect(rec.missingness.skippedNote).toBe(true);
@@ -212,7 +212,7 @@ describe('buildDailyRecord — 修正保存時の note 温存 (M4)', () => {
 
   it('args.note が空白のみ (明示クリア相当) なら previous.note を削除する', () => {
     const rec = buildDailyRecord(
-      args({ date: '2026-05-22', note: '   ', previous: previousWithNote }),
+      args({ date: '2026-05-22', note: '   ', previous: previousWithNote })
     );
     expect(rec.note).toBeUndefined();
     expect(rec.missingness.skippedNote).toBe(true);
@@ -224,7 +224,7 @@ describe('buildDailyRecord — 修正保存時の note 温存 (M4)', () => {
         date: '2026-05-22',
         note: '新しい自由記述',
         previous: previousWithNote,
-      }),
+      })
     );
     expect(rec.note).toBe('新しい自由記述');
     expect(rec.missingness.skippedNote).toBe(false);
@@ -272,7 +272,7 @@ describe('buildDailyRecord — targetDateType (schemaVersion 0.1.0)', () => {
       targetDateType: 'yesterday',
     };
     const rec = buildDailyRecord(
-      args({ date: '2026-05-22', previous, targetDateType: 'today' }),
+      args({ date: '2026-05-22', previous, targetDateType: 'today' })
     );
     expect(rec.targetDateType).toBe('today');
   });
@@ -323,7 +323,7 @@ describe('buildDailyRecord — OFF カテゴリの previous 温存 (T5 §8.5)', 
           'sleep.bedtime': '22:30',
         },
         previous,
-      }),
+      })
     );
     // OFF にした meal は previous の値が残っている
     expect(rec.meal).toBeDefined();
@@ -342,7 +342,7 @@ describe('buildDailyRecord — OFF カテゴリの previous 温存 (T5 §8.5)', 
         enabledCategoryIds: [],
         selections: {},
         previous,
-      }),
+      })
     );
     expect(rec.sleep).toEqual(previous.sleep);
     expect(rec.meal).toEqual(previous.meal);
@@ -363,7 +363,7 @@ describe('buildDailyRecord — OFF カテゴリの previous 温存 (T5 §8.5)', 
         enabledCategoryIds: ['sleep'],
         selections: {},
         previous,
-      }),
+      })
     );
     // ON で未入力 → undefined (previous で上書きしない)
     expect(rec.sleep).toBeUndefined();

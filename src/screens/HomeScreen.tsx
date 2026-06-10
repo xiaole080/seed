@@ -4,11 +4,7 @@ import { BottomTabs, type TabId } from '../components/BottomTabs';
 import { BirdStage } from '../components/BirdStage';
 import { useWeather } from '../components/useWeather';
 import { WeatherWidget } from '../components/WeatherWidget';
-import {
-  STAGE_LABEL,
-  dailyWhisperFor,
-  getMilestone,
-} from '../data/stages';
+import { STAGE_LABEL, dailyWhisperFor, getMilestone } from '../data/stages';
 import type {
   AttendanceState,
   ConsentState,
@@ -122,9 +118,9 @@ export function HomeScreen({
   const isOffDay = !!today && today.mode === 'off';
 
   // 「修正する」を押した時に出す確認ブロック (T6: confirm() ではなくインライン)
-  const [confirmTarget, setConfirmTarget] = useState<'today' | 'yesterday' | null>(
-    null,
-  );
+  const [confirmTarget, setConfirmTarget] = useState<
+    'today' | 'yesterday' | null
+  >(null);
 
   const handleTodayClick = () => {
     if (hasTodayRecord) setConfirmTarget('today');
@@ -177,9 +173,7 @@ export function HomeScreen({
             >
               SEED · DAILY
             </div>
-            <div
-              style={{ fontSize: 10, color: PALETTE.inkSoft, marginTop: 2 }}
-            >
+            <div style={{ fontSize: 10, color: PALETTE.inkSoft, marginTop: 2 }}>
               VOL.{totalDays} · {nickname}'s edition
             </div>
           </div>
@@ -341,9 +335,7 @@ export function HomeScreen({
               {isAttendable && (
                 <>
                   <br />
-                  <span
-                    style={{ color: PALETTE.sageDeep, fontWeight: 700 }}
-                  >
+                  <span style={{ color: PALETTE.sageDeep, fontWeight: 700 }}>
                     {/* T4-B: 休みの日の打刻導線文言を CheckInScreen 側のサブボタン (T4-A)
                         と統一して「やっぱり通所する」に揃える。 */}
                     {isOffDay ? 'やっぱり通所する →' : 'タップで打刻 →'}
@@ -473,7 +465,9 @@ export function HomeScreen({
               cursor: 'pointer',
             }}
           >
-            {hasTodayRecord ? '今日の記録を修正する　→' : '今日の様子を記録する　→'}
+            {hasTodayRecord
+              ? '今日の記録を修正する　→'
+              : '今日の様子を記録する　→'}
           </button>
           <button
             onClick={handleYesterdayClick}

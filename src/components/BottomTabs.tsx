@@ -10,9 +10,9 @@ interface Tab {
 
 const TABS: Tab[] = [
   { id: 'home', label: 'ホーム', icon: '🌱' },
-  { id: 'log',  label: 'きろく', icon: '📔' },
-  { id: 'care', label: 'ケア',   icon: '🌿' },
-  { id: 'me',   label: 'わたし', icon: '🪺' },
+  { id: 'log', label: 'きろく', icon: '📔' },
+  { id: 'care', label: 'ケア', icon: '🌿' },
+  { id: 'me', label: 'わたし', icon: '🪺' },
 ];
 
 interface BottomTabsProps {
@@ -54,7 +54,9 @@ export function BottomTabs({ active, onChange }: BottomTabsProps) {
               fontFamily: 'inherit',
             }}
           >
-            <span style={{ fontSize: 20, opacity: isActive ? 1 : 0.5 }}>{t.icon}</span>
+            <span style={{ fontSize: 20, opacity: isActive ? 1 : 0.5 }}>
+              {t.icon}
+            </span>
             <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 500 }}>
               {t.label}
             </span>

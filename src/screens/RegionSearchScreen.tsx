@@ -36,9 +36,9 @@ export function RegionSearchScreen({
 }: RegionSearchScreenProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GeocodingResult[]>([]);
-  const [status, setStatus] = useState<
-    'idle' | 'loading' | 'empty' | 'error'
-  >('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'empty' | 'error'>(
+    'idle'
+  );
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   const abortRef = useRef<AbortController | null>(null);
@@ -86,7 +86,7 @@ export function RegionSearchScreen({
           setErrorMsg(
             err instanceof GeocodingError
               ? errorMessageFor(err.kind)
-              : '検索に失敗しました',
+              : '検索に失敗しました'
           );
         });
     }, DEBOUNCE_MS);
@@ -206,10 +206,12 @@ export function RegionSearchScreen({
                 gap: 6,
               }}
             >
-              {(Object.entries(REGIONS) as [
-                RegionId,
-                typeof REGIONS[RegionId],
-              ][]).map(([id, r]) => (
+              {(
+                Object.entries(REGIONS) as [
+                  RegionId,
+                  (typeof REGIONS)[RegionId],
+                ][]
+              ).map(([id, r]) => (
                 <button
                   key={id}
                   onClick={() => onPick({ kind: 'preset', presetId: id })}
