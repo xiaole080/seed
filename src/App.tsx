@@ -1,239 +1,38 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { LoginScreen } from './screens/LoginScreen';
-import { EggCustomizeScreen } from './screens/EggCustomizeScreen';
-import { AttendanceSetupScreen } from './screens/AttendanceSetupScreen';
-import { RecordItemsSetupScreen } from './screens/RecordItemsSetupScreen';
-import { HomeScreen } from './screens/HomeScreen';
-import { MoodLogScreen } from './screens/MoodLogScreen';
-import { ReactionScreen } from './screens/ReactionScreen';
-import { CheckInScreen } from './screens/CheckInScreen';
-import { ProfileScreen } from './screens/ProfileScreen';
-import { HistoryScreen } from './screens/HistoryScreen';
-import { CareScreen } from './screens/CareScreen';
-import type { TabId } from './components/BottomTabs';
-import { DEFAULT_SCHEDULE } from './data/attendance';
-import { DEFAULT_RECORD_IDS } from './data/records';
 import { deriveStage } from './data/stages';
-import { loadJson, saveJson } from './storage';
-import type {
-  AttendanceMonthlyRecord,
-  AttendanceState,
-  ClosedDayActivity,
-  ConsentState,
-  EggSpeciesId,
-  EggTraitId,
-  Mood,
-  RecordPreset,
-  RegionId,
-  Schedule,
-  SelectedRegion,
-  Stage,
-  TodayCard,
-} from './data/types';
-import { REGIONS, roundCoord } from './data/regions';
-import {
-  flushOutboxOnce,
-  logCheckIn,
-  logCheckOut,
-  logMood,
-  logSettings,
-  syncHistoryOnce,
-} from './api/sheets';
-import { ConsentScreen } from './screens/ConsentScreen';
-import { RegionSearchScreen } from './screens/RegionSearchScreen';
-import { clearWeatherCache } from './data/weatherCache';
+import { saveJson } from './storage';
+import type { AttendanceState, ConsentState, TodayCard } from './data/types';
+import { flushOutboxOnce, syncHistoryOnce } from './api/sheets';
 import {
   countRecordedDays,
   currentStreak,
-  deleteAttendance,
   getAttendance,
-  getDailyRecord,
-  nowHHmm,
-  nowISO,
   scheduleSlotFor,
-  setClosedDayActivity,
   todayISO,
-  upsertAttendance,
-  upsertDailyRecord,
-  weekdayEnFor,
 } from './data/store';
-import { buildDailyRecord } from './data/dailyMapper';
 import { runMigrations } from './data/migrations';
-
-function selectionsToPlain(
-  sel: Record<string, string | null | Set<string>>
-): Record<string, string | string[] | null> {
-  const out: Record<string, string | string[] | null> = {};
-  for (const [k, v] of Object.entries(sel)) {
-    out[k] = v instanceof Set ? Array.from(v) : v;
-  }
-  return out;
-}
-
-function diffMinutes(start: string, end: string): number | undefined {
-  const [sh, sm] = start.split(':').map(Number);
-  const [eh, em] = end.split(':').map(Number);
-  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return undefined;
-  return eh * 60 + em - (sh * 60 + sm);
-}
-
-const WEEKDAY_JP_LABELS = ['日', '月', '火', '水', '木', '金', '土'] as const;
-
-type Phase =
-  | 'consent'
-  | 'login'
-  | 'setup-egg'
-  | 'setup-attendance'
-  | 'setup-records'
-  | 'app';
-
-type Route = TabId | 'mood' | 'reaction' | 'checkin' | 'regionSearch';
-
-/** YYYY-MM-DD で今日からの offset 日を返す (offset=-1 は昨日) */
-function isoDaysOffset(offset: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-interface AppState {
-  nickname: string;
-  schedule: Schedule;
-  recordIds: string[];
-  /** わたし画面で追加されたカスタム記録項目 (永続化対象) */
-  customRecordItems: RecordPreset[];
-  /**
-   * 選択中の地域。schemaVersion 0.2.0 で `RegionId` から `SelectedRegion` に拡張。
-   * 永続化されたデータが string (旧 RegionId) の場合は normalizeRegion で
-   * `{ kind: 'preset', presetId }` に正規化する。
-   */
-  region: SelectedRegion;
-  manualStage: Stage;
-  streak: number;
-  totalDays: number;
-  attendanceState: AttendanceState;
-  lastMood: Mood;
-  eggSpecies: EggSpeciesId;
-  eggTrait: EggTraitId | null;
-  eggName: string;
-  showWhisper: boolean;
-}
-
-const INITIAL_STATE: AppState = {
-  nickname: 'はる',
-  schedule: DEFAULT_SCHEDULE,
-  recordIds: DEFAULT_RECORD_IDS,
-  customRecordItems: [],
-  region: { kind: 'preset', presetId: 'tokyo' },
-  manualStage: 0,
-  streak: 0,
-  totalDays: 0,
-  attendanceState: 'before',
-  lastMood: 4,
-  eggSpecies: 'chicken',
-  eggTrait: null,
-  eggName: '',
-  showWhisper: true,
-};
-
-const STORAGE_KEY_STATE = 'seed.app.state.v1';
-const STORAGE_KEY_PHASE = 'seed.app.phase.v1';
-const STORAGE_KEY_CONSENT = 'seed.consent.v1';
-
-const DEFAULT_CONSENT: ConsentState = {
-  appTermsAccepted: false,
-  attendanceBackupConsent: 'notAsked',
-  attendanceExportConsent: 'notAsked',
-  researchConsent: 'notAsked',
-  weatherApiConsent: 'notAsked',
-  consentVersion: 'v1.1',
-};
-
-/**
- * 旧形式 (string = RegionId) を含む region 値を SelectedRegion へ正規化する。
- * schemaVersion 0.2.0 で `state.region` を SelectedRegion に切り替えたため、
- * localStorage に残っている旧データを読み取る際の安全弁。
- */
-function normalizeRegion(raw: unknown): SelectedRegion {
-  if (typeof raw === 'string') {
-    if (raw in REGIONS) {
-      return { kind: 'preset', presetId: raw as RegionId };
-    }
-    return { kind: 'preset', presetId: 'tokyo' };
-  }
-  if (raw && typeof raw === 'object') {
-    const r = raw as Partial<SelectedRegion> & {
-      kind?: string;
-      presetId?: string;
-      name?: string;
-      lat?: number;
-      lon?: number;
-    };
-    if (
-      r.kind === 'preset' &&
-      typeof r.presetId === 'string' &&
-      r.presetId in REGIONS
-    ) {
-      return { kind: 'preset', presetId: r.presetId as RegionId };
-    }
-    if (
-      r.kind === 'custom' &&
-      typeof r.name === 'string' &&
-      typeof r.lat === 'number' &&
-      typeof r.lon === 'number'
-    ) {
-      // 読み込み時防御 (§4.2): 旧データに小数3位以降が残っていた場合の救済。
-      // 上流 (geocoding.ts / RegionSearchScreen) で丸めているが、リリース前の
-      // データを抱えた端末を保護する。
-      return {
-        kind: 'custom',
-        name: r.name,
-        lat: roundCoord(r.lat),
-        lon: roundCoord(r.lon),
-      };
-    }
-  }
-  return { kind: 'preset', presetId: 'tokyo' };
-}
+import {
+  loadInitialAppState,
+  loadInitialConsent,
+  loadInitialPhase,
+  STORAGE_KEY_STATE,
+  STORAGE_KEY_PHASE,
+  STORAGE_KEY_CONSENT,
+  WEEKDAY_JP_LABELS,
+  type AppState,
+  type Phase,
+} from './data/appState';
+import { useAttendanceActions } from './screens/app/useAttendanceActions';
+import { OnboardingFlow } from './screens/app/OnboardingFlow';
+import { MainRouter, type Route } from './screens/app/MainRouter';
 
 export default function App() {
-  const [phase, setPhase] = useState<Phase>(() =>
-    loadJson<Phase>(STORAGE_KEY_PHASE, 'consent')
-  );
-  const [consent, setConsent] = useState<ConsentState>(() => {
-    // 旧 v1.0 ユーザの consent JSON には weatherApiConsent などの新規 field が
-    // 入っていない可能性がある。DEFAULT_CONSENT を先に展開して欠損を埋め、
-    // ロード結果で必要な field だけ上書きする。
-    // consentVersion はロード値があれば優先 (旧 'v1.0' を残し、migrations 側で 'v1.1' に上げる)。
-    const loaded = loadJson<Partial<ConsentState>>(STORAGE_KEY_CONSENT, {});
-    return { ...DEFAULT_CONSENT, ...loaded };
-  });
+  const [phase, setPhase] = useState<Phase>(loadInitialPhase);
+  const [consent, setConsent] = useState<ConsentState>(loadInitialConsent);
   const [route, setRoute] = useState<Route>('home');
-  const [state, setState] = useState<AppState>(() => {
-    const loaded = loadJson<
-      Partial<AppState> & {
-        region?: unknown;
-        todayMode?: unknown;
-        todayBand?: unknown;
-      }
-    >(STORAGE_KEY_STATE, {});
-    // T1: 旧スキーマにあった todayMode / todayBand は派生値化したため捨てる。
-    // 既存テスター端末で残っていても無視する (永続化時には自然に消える)。
-    const { todayMode: _tm, todayBand: _tb, ...rest } = loaded;
-    void _tm;
-    void _tb;
-    return {
-      ...INITIAL_STATE,
-      ...rest,
-      // 旧データ (string の RegionId) を SelectedRegion へ正規化する。
-      region: normalizeRegion(loaded.region ?? INITIAL_STATE.region),
-    };
-  });
+  const [state, setState] = useState<AppState>(loadInitialAppState);
   /** mood 記録の対象日 (YYYY-MM-DD)。home から遷移する時にセット。 */
-  const [moodTargetDate, setMoodTargetDate] = useState<string>(() =>
-    todayISO()
-  );
+  const [moodTargetDate, setMoodTargetDate] = useState<string>(() => todayISO());
   /** mood 記録の対象日タイプ。'today'/'yesterday' どちらから来たか保持。 */
   const [moodTargetType, setMoodTargetType] = useState<'today' | 'yesterday'>(
     'today'
@@ -308,12 +107,9 @@ export default function App() {
   //
   // 鳥ステージ・種別 後退防止の仕様 (docs/specs/bird-stage-no-regression.md):
   //   - stage: この useEffect で manualStage を「単調増加」に保つことで後退防止。
-  //   - species (state.eggSpecies): EggCustomizeScreen での明示選択 (下記
-  //     phase === 'setup-egg' 分岐の update({ eggSpecies, ... })) と、
+  //   - species (state.eggSpecies): EggCustomizeScreen での明示選択と、
   //     全データ削除 (onAllDataDeleted → setState(INITIAL_STATE)) 以外では
-  //     書き換わらない。既存仕様で後退経路が存在しないため、防御的 useEffect は
-  //     追加していない (将来の species 変更 UI 追加時の副作用源を避けるため)。
-  //     外部送信なし / 保存先変更なし。詳細は仕様書 §5・§10 参照。
+  //     書き換わらない。詳細は仕様書 §5・§10 参照。
   useEffect(() => {
     if (stage > state.manualStage) {
       update({ manualStage: stage });
@@ -361,393 +157,41 @@ export default function App() {
   const update = (patch: Partial<AppState>) =>
     setState((prev) => ({ ...prev, ...patch }));
 
-  // ── 通所打刻ハンドラ (A1/A3): 端末ストアへも同時に書く ──
-  const ensureTodayAttendance = (): AttendanceMonthlyRecord => {
-    const date = todayISO();
-    const existing = getAttendance(date);
-    if (existing) return existing;
-    const slot = scheduleSlotFor(date, state.schedule);
-    const exportMonth = date.slice(0, 7); // YYYY-MM
-    const rec: AttendanceMonthlyRecord = {
-      localAttendanceId: `att_${date}`,
-      date,
-      weekday: weekdayEnFor(date),
-      plannedMode: slot?.mode ?? 'off',
-      plannedBand: slot?.band,
-      actualMode: undefined,
-      checkIn: undefined,
-      checkOut: undefined,
-      durationMinutes: undefined,
-      // 予定が休みでなく実打刻もまだ → 未打刻フラグ true
-      missingClock: (slot?.mode ?? 'off') !== 'off',
-      edited: false,
-      exportMonth,
-    };
-    upsertAttendance(rec);
-    return rec;
-  };
+  const attendance = useAttendanceActions({ state, today, update, bumpStore });
 
-  const handleCheckIn = () => {
-    update({ attendanceState: 'checkedIn' });
-    const time = nowHHmm();
-    const rec = ensureTodayAttendance();
-    // T6/T7: 予定が休み (off) の日でも CheckInScreen から「やっぱり通所する」で
-    // 進入した場合は例外打刻として扱う。actualMode は 'office' を入れる
-    // (plannedMode='off' + actualMode='office' で支援員側が例外を識別する)。
-    const actual: TodayCard['mode'] =
-      today.mode === 'off' ? 'office' : today.mode;
-    upsertAttendance({
-      ...rec,
-      actualMode: actual,
-      checkIn: time,
-      missingClock: false,
-    });
-    bumpStore();
-    logCheckIn(
-      { mode: actual, band: today.band, state: 'checkedIn', time },
-      state.nickname
-    );
-  };
-
-  const handleCheckOut = () => {
-    update({ attendanceState: 'checkedOut' });
-    const time = nowHHmm();
-    const rec = ensureTodayAttendance();
-    const checkIn = rec.checkIn;
-    const durationMinutes =
-      checkIn != null ? diffMinutes(checkIn, time) : undefined;
-    // T6/T7: 退室時も例外打刻 (planned=off) の場合は actualMode='office' に揃える。
-    const actual: TodayCard['mode'] =
-      rec.actualMode ?? (today.mode === 'off' ? 'office' : today.mode);
-    upsertAttendance({
-      ...rec,
-      actualMode: actual,
-      checkOut: time,
-      durationMinutes,
-      missingClock: rec.checkIn == null, // 入室時刻が無いまま退室は未打刻扱い
-    });
-    bumpStore();
-    logCheckOut(
-      { mode: actual, band: today.band, state: 'checkedOut', time },
-      state.nickname
-    );
-  };
-
-  // T1-C: 「時刻を手で直す」インライン編集の保存。
-  // - 既存レコードを土台に checkIn / checkOut を差し替える (durationMinutes も再計算)
-  // - edited フラグを立てる (Sheets 側で「修正済」識別のため)
-  // - Sheets への再送はここでは行わない。ローカル整合のみを優先する (§13.2)。
-  const handleTimeEdit = (next: { checkIn?: string; checkOut?: string }) => {
-    const rec = ensureTodayAttendance();
-    const checkIn = next.checkIn;
-    const checkOut = next.checkOut;
-    const durationMinutes =
-      checkIn != null && checkOut != null
-        ? diffMinutes(checkIn, checkOut)
-        : undefined;
-    upsertAttendance({
-      ...rec,
-      checkIn,
-      checkOut,
-      durationMinutes,
-      missingClock: checkIn == null,
-      edited: true,
-    });
-    // attendanceState は次のレコード状態に合わせ直す
-    const nextState: AttendanceState =
-      checkOut != null
-        ? 'checkedOut'
-        : checkIn != null
-          ? 'checkedIn'
-          : 'before';
-    update({ attendanceState: nextState });
-    bumpStore();
-  };
-
-  // T3-B: 今日の打刻を丸ごと取り消す。
-  // - deleteAttendance で localStorage の該当日エントリのみ削除
-  // - attendanceState を 'before' に戻す → CheckInScreen は再打刻可能に戻る
-  // - Sheets 既送信のぶんはここでは取り消せない (UI 側で注記済 / T3-C)
-  const handleDeleteToday = () => {
-    deleteAttendance(todayISO());
-    update({ attendanceState: 'before' });
-    bumpStore();
-  };
-
-  // 案 X: 事務所休業日の「軽い記録」を保存する。
-  // localStorage の seed.daily.v1 にだけ書き込み、Sheets/CSV には流さない。
-  // 1 日 1 つ・上書き保存 (再選択すると最新値で差し替え)。
-  const handleClosedDayActivity = (value: ClosedDayActivity) => {
-    setClosedDayActivity(todayISO(), value);
-    bumpStore();
-  };
-
-  let inner: ReactNode = null;
-  if (phase === 'consent') {
-    inner = (
-      <ConsentScreen
+  const inner: ReactNode =
+    phase !== 'app' ? (
+      <OnboardingFlow
+        phase={phase}
+        state={state}
         consent={consent}
-        onAccept={(next) => {
-          setConsent({
-            ...next,
-            appTermsAccepted: true,
-            consentedAt: nowISO(),
-          });
-          setPhase('login');
-        }}
+        setConsent={setConsent}
+        setPhase={setPhase}
+        setRoute={setRoute}
+        update={update}
       />
-    );
-  } else if (phase === 'login') {
-    inner = (
-      <LoginScreen
-        nickname={state.nickname}
-        onChange={(v) => update({ nickname: v })}
-        onSubmit={(v) => {
-          update({ nickname: v });
-          setPhase('setup-egg');
-        }}
-      />
-    );
-  } else if (phase === 'setup-egg') {
-    inner = (
-      <EggCustomizeScreen
-        initialSpecies={state.eggSpecies}
-        initialTrait={state.eggTrait}
-        initialName={state.eggName}
-        onSave={({ eggSpecies, eggTrait, eggName }) => {
-          update({ eggSpecies, eggTrait, eggName });
-          setPhase('setup-attendance');
-        }}
-        onSkip={() => setPhase('setup-attendance')}
-      />
-    );
-  } else if (phase === 'setup-attendance') {
-    inner = (
-      <AttendanceSetupScreen
-        initial={state.schedule}
-        onSave={(s) => {
-          update({ schedule: s });
-          setPhase('setup-records');
-        }}
-        onSkip={() => setPhase('setup-records')}
-      />
-    );
-  } else if (phase === 'setup-records') {
-    inner = (
-      <RecordItemsSetupScreen
-        initialIds={state.recordIds}
-        onSave={(ids) => {
-          update({ recordIds: ids });
-          setPhase('app');
-          setRoute('home');
-        }}
-        onSkip={() => {
-          setPhase('app');
-          setRoute('home');
-        }}
-      />
-    );
-  } else if (route === 'mood') {
-    // 対象日と既存レコード (修正時のみ) を読み出して MoodLogScreen に渡す。
-    const targetDate = moodTargetDate;
-    const existing = getDailyRecord(targetDate);
-    inner = (
-      <MoodLogScreen
-        initialMood={existing?.mood ?? state.lastMood}
-        enabledCategoryIds={state.recordIds}
-        targetDate={targetDate}
-        initialRecord={existing}
-        onCancel={() => setRoute('home')}
-        onSubmit={({
-          mood,
-          primaryInfluence,
-          selections,
-          note,
-          influenceOtherText,
-          sectionOtherTexts,
-        }) => {
-          const plain = selectionsToPlain(selections);
-
-          // A1: 端末ストアへ DailyRecord として保存 (自由記述もここだけ)
-          const previous = getDailyRecord(targetDate);
-          const daily = buildDailyRecord({
-            mood,
-            primaryInfluence,
-            selections: plain,
-            note,
-            enabledCategoryIds: state.recordIds,
-            date: targetDate,
-            previous,
-            influenceOtherText,
-            sectionOtherTexts,
-            edited: previous != null,
-            targetDateType: moodTargetType,
-          });
-          upsertDailyRecord(daily);
-          bumpStore();
-
-          // lastMood だけ覚えておく (next-open のデフォルト用)。
-          // totalDays / streak はストアから派生するので state では持たない。
-          update({ lastMood: mood });
-
-          // Sheets には気分・影響・詳細選択のみ送信。
-          // 自由記述・*.otherText / influenceOtherText は端末ローカル限定 (§9.5 / §13.8)。
-          // ※ sheets.ts 側でも otherText / note を確実に除去するフィルタを持つ。
-          logMood(
-            {
-              mood,
-              primaryInfluence,
-              selections: plain,
-            },
-            state.nickname
-          );
-          setRoute('reaction');
-        }}
-      />
-    );
-  } else if (route === 'reaction') {
-    inner = (
-      <ReactionScreen
-        stage={stage}
-        nickname={state.nickname}
-        mood={state.lastMood}
-        species={state.eggSpecies}
-        eggName={state.eggName}
-        onHome={() => setRoute('home')}
-      />
-    );
-  } else if (route === 'regionSearch') {
-    inner = (
-      <RegionSearchScreen
-        consent={consent.weatherApiConsent}
-        onPick={(r) => {
-          update({ region: r });
-          const summary = r.kind === 'preset' ? r.presetId : 'custom';
-          logSettings({ field: 'region', value: summary }, state.nickname);
-          // 別地域に切り替えたら以前の天気キャッシュは捨てる (座標一致しないため
-          // どのみち使われないが、明示的にクリア)。
-          clearWeatherCache();
-          setRoute('me');
-        }}
-        onBack={() => setRoute('me')}
-      />
-    );
-  } else if (route === 'checkin') {
-    // 事務所休業日の「軽い記録」現在値を渡す (ボタン下の「記録済み」表示用)
-    const todayDaily = getDailyRecord(dateKey);
-    inner = (
-      <CheckInScreen
-        today={today}
-        state={state.attendanceState}
-        nickname={state.nickname}
-        closedDayActivity={todayDaily?.closedDayActivity}
-        onBack={() => setRoute('home')}
-        onCheckIn={handleCheckIn}
-        onCheckOut={handleCheckOut}
-        onTimeEdit={handleTimeEdit}
-        onDelete={handleDeleteToday}
-        onClosedDayActivity={handleClosedDayActivity}
-        onTab={(t) => setRoute(t)}
-      />
-    );
-  } else if (route === 'home') {
-    const todayDate = todayISO();
-    const yesterdayDate = isoDaysOffset(-1);
-    inner = (
-      <HomeScreen
-        nickname={state.nickname}
+    ) : (
+      <MainRouter
+        route={route}
+        state={state}
+        consent={consent}
         stage={stage}
         totalDays={totalDays}
         today={today}
-        attendanceState={state.attendanceState}
-        region={state.region}
-        weatherConsent={consent.weatherApiConsent}
-        species={state.eggSpecies}
-        eggName={state.eggName}
-        showWhisper={state.showWhisper}
-        hasTodayRecord={getDailyRecord(todayDate) != null}
-        hasYesterdayRecord={getDailyRecord(yesterdayDate) != null}
-        onTab={(t) => setRoute(t)}
-        onLogMood={() => {
-          setMoodTargetDate(todayDate);
-          setMoodTargetType('today');
-          setRoute('mood');
-        }}
-        onLogYesterday={() => {
-          setMoodTargetDate(yesterdayDate);
-          setMoodTargetType('yesterday');
-          setRoute('mood');
-        }}
-        onOpenCheckIn={() => setRoute('checkin')}
-        onEnableWeather={() => setRoute('me')}
+        dateKey={dateKey}
+        moodTargetDate={moodTargetDate}
+        moodTargetType={moodTargetType}
+        setRoute={setRoute}
+        setPhase={setPhase}
+        setConsent={setConsent}
+        setState={setState}
+        update={update}
+        bumpStore={bumpStore}
+        setMoodTargetDate={setMoodTargetDate}
+        setMoodTargetType={setMoodTargetType}
+        attendance={attendance}
       />
     );
-  } else if (route === 'log') {
-    inner = (
-      <HistoryScreen recordIds={state.recordIds} onTab={(t) => setRoute(t)} />
-    );
-  } else if (route === 'care') {
-    inner = (
-      <CareScreen
-        totalDays={totalDays}
-        eggName={state.eggName}
-        nickname={state.nickname}
-        schedule={state.schedule}
-        onTab={(t) => setRoute(t)}
-      />
-    );
-  } else if (route === 'me') {
-    inner = (
-      <ProfileScreen
-        nickname={state.nickname}
-        schedule={state.schedule}
-        region={state.region}
-        weatherConsent={consent.weatherApiConsent}
-        recordIds={state.recordIds}
-        customRecordItems={state.customRecordItems}
-        onTab={(t) => setRoute(t)}
-        onChangeNickname={(v) => {
-          update({ nickname: v });
-          logSettings({ field: 'nickname', value: v }, v);
-        }}
-        onChangeRegion={(r) => {
-          update({ region: r });
-          // Sheets には地域の "種別" だけを送る (custom の name は送らない)。
-          // custom の中身 (具体的な地名) はローカル限定として扱う。
-          const summary = r.kind === 'preset' ? r.presetId : 'custom';
-          logSettings({ field: 'region', value: summary }, state.nickname);
-        }}
-        onChangeWeatherConsent={(next) => {
-          setConsent({ ...consent, weatherApiConsent: next });
-          // 同意状態の変更は Sheets に値 (accepted/declined) のみ送る。
-          logSettings(
-            { field: 'weatherApiConsent', value: next },
-            state.nickname
-          );
-        }}
-        onOpenRegionSearch={() => setRoute('regionSearch')}
-        onChangeRecordItems={(ids, customs) => {
-          // T5: ON/OFF 切替を state へ反映。state は localStorage に永続化される。
-          // これでリロードなしで MoodLog / History にも反映される。
-          update({ recordIds: ids, customRecordItems: customs });
-          // 設定変更ログは項目数だけ送る (中身は送らない: customs のラベルは
-          // 自由記述に準ずる扱いとしてローカル限定)。
-          logSettings(
-            { field: 'recordIds', value: ids.length },
-            state.nickname
-          );
-        }}
-        onAllDataDeleted={() => {
-          // A6: 削除後は同意取り直しから
-          setState(INITIAL_STATE);
-          setConsent(DEFAULT_CONSENT);
-          setPhase('consent');
-          setRoute('home');
-          bumpStore();
-        }}
-      />
-    );
-  }
 
   return (
     <div className="phone-app-shell">
