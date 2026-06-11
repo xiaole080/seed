@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { deriveStage } from './data/stages';
 import { saveJson } from './storage';
 import type { AttendanceState, ConsentState, TodayCard } from './data/types';
@@ -22,6 +29,11 @@ import {
   type AppState,
   type Phase,
 } from './data/appState';
+import {
+  appendUsageEvent,
+  beginRecordSession,
+  endRecordSession,
+} from './data/usageLog';
 import { useAttendanceActions } from './screens/app/useAttendanceActions';
 import { OnboardingFlow } from './screens/app/OnboardingFlow';
 import { MainRouter, type Route } from './screens/app/MainRouter';
@@ -54,6 +66,55 @@ export default function App() {
     saveJson(STORAGE_KEY_CONSENT, consent);
   }, [consent]);
 
+  // ── 利用ログ (docs/usage-log-spec.md) ──────────────────────
+  // イベント種類 + 時刻のみを端末内に記録する。記録内容 (mood/note 等) は
+  // いかなる形でも渡さない。外部送信なし。
+  //
+  // app_open: 起動時 1 回 + visible 復帰時。直前の app_open から 30 秒未満
+  // なら記録しない (決定事項 D-3。StrictMode の二重 effect もこれで吸収)。
+  const lastAppOpenAtRef = useRef(0);
+  const logAppOpenDebounced = useCallback(() => {
+    const nowMs = Date.now();
+    if (nowMs - lastAppOpenAtRef.current < 30_000) return;
+    lastAppOpenAtRef.current = nowMs;
+    appendUsageEvent('app_open');
+  }, []);
+  useEffect(() => {
+    // 起動時 1 回 (logAppOpenDebounced は useCallback で安定)
+    logAppOpenDebounced();
+  }, [logAppOpenDebounced]);
+
+  // 進行中の記録セッション (record_open → save/abandon の相関 ID)。
+  const recordSessionRef = useRef<string | null>(null);
+
+  // route 遷移の前回値比較で record_open / record_abandon / history_open を計測。
+  // mood 画面内の再レンダーでは多重記録しない (遷移時のみ発火)。
+  const prevRouteRef = useRef<Route>(route);
+  useEffect(() => {
+    const prev = prevRouteRef.current;
+    if (prev === route) return;
+    prevRouteRef.current = route;
+    if (prev === 'mood' && recordSessionRef.current != null) {
+      // save 済みなら endRecordSession 側で no-op になる (二重 end 防止)
+      endRecordSession(recordSessionRef.current, 'abandon');
+      recordSessionRef.current = null;
+    }
+    if (route === 'mood') {
+      recordSessionRef.current = beginRecordSession();
+    }
+    if (route === 'log') {
+      appendUsageEvent('history_open');
+    }
+  }, [route]);
+
+  // MoodLogScreen の保存成功直後に MainRouter から呼ばれる。
+  // 記録内容は受け取らない (引数なし)。
+  const handleRecordSaved = () => {
+    if (recordSessionRef.current != null) {
+      endRecordSession(recordSessionRef.current, 'save');
+    }
+  };
+
   // 起動時に1度だけ: schemaVersion マイグレ → モック履歴シード → オフラインキュー flush
   useEffect(() => {
     // 同意取得前でも安全に走るのが望ましい (DailyRecord の補完のみで外部送信なし)
@@ -79,14 +140,18 @@ export default function App() {
     };
     const id = window.setInterval(check, 60_000);
     const onVis = () => {
-      if (document.visibilityState === 'visible') check();
+      if (document.visibilityState === 'visible') {
+        check();
+        // 利用ログ: フォアグラウンド復帰を app_open として記録 (30秒デバウンス)
+        logAppOpenDebounced();
+      }
     };
     document.addEventListener('visibilitychange', onVis);
     return () => {
       window.clearInterval(id);
       document.removeEventListener('visibilitychange', onVis);
     };
-  }, []);
+  }, [logAppOpenDebounced]);
 
   // ← 鳥成長は「ユニークな記録日数」から派生する。
   //    同じ日に何回 submit しても 1日分にしかカウントしない (連続日数も同様)。
@@ -190,6 +255,7 @@ export default function App() {
         setMoodTargetDate={setMoodTargetDate}
         setMoodTargetType={setMoodTargetType}
         attendance={attendance}
+        onRecordSaved={handleRecordSaved}
       />
     );
 

@@ -6,6 +6,7 @@
 //  - JSON シリアライズ可能な平易な構造のみ。Set/Date は使わない。
 
 import { loadJson, saveJson } from '../storage';
+import { USAGE_LOG_KEY } from './usageLog';
 import type {
   AttendanceMode,
   AttendanceMonthlyRecord,
@@ -408,6 +409,8 @@ export function deleteAllLocalData(): void {
       ROUTINE_LOGS_KEY,
       ONEOFF_TASKS_KEY,
       NOTICE_ROUTINES_DISMISSED_KEY,
+      // 利用ログ (docs/usage-log-spec.md §3): 全削除導線に必ず含める
+      USAGE_LOG_KEY,
     ];
     for (const k of keys) localStorage.removeItem(k);
   } catch {

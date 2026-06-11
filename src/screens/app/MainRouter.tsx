@@ -48,6 +48,11 @@ interface MainRouterProps {
   setMoodTargetDate: (d: string) => void;
   setMoodTargetType: (t: 'today' | 'yesterday') => void;
   attendance: ReturnType<typeof useAttendanceActions>;
+  /**
+   * 利用ログ: 記録保存成功直後の通知 (record_save)。
+   * 記録内容は渡さない (引数なし)。docs/usage-log-spec.md §4-T4。
+   */
+  onRecordSaved?: () => void;
 }
 
 // phase === 'app' のときの、route ベースの画面ルーティング。
@@ -70,6 +75,7 @@ export function MainRouter({
   setMoodTargetDate,
   setMoodTargetType,
   attendance,
+  onRecordSaved,
 }: MainRouterProps): ReactNode {
   if (route === 'mood') {
     // 対象日と既存レコード (修正時のみ) を読み出して MoodLogScreen に渡す。
@@ -108,6 +114,8 @@ export function MainRouter({
             targetDateType: moodTargetType,
           });
           upsertDailyRecord(daily);
+          // 利用ログ: 保存成功を record_save として記録 (内容は渡さない)
+          onRecordSaved?.();
           bumpStore();
 
           // lastMood だけ覚えておく (next-open のデフォルト用)。

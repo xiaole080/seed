@@ -19,6 +19,7 @@ import { NicknameCard } from './profile/NicknameCard';
 import { WeatherConsentToggle } from './profile/WeatherConsentToggle';
 import { AttendanceExportCard } from './profile/AttendanceExportCard';
 import { JsonExportCard } from './profile/JsonExportCard';
+import { UsageLogCard } from './profile/UsageLogCard';
 import { DataDeleteCard } from './profile/DataDeleteCard';
 
 interface ProfileScreenProps {
@@ -166,6 +167,9 @@ export function ProfileScreen({
 
         {/* Sprint 2026-05-23 Phase 2d — 全データ JSON エクスポート (端末内のみ) */}
         <JsonExportCard />
+
+        {/* docs/usage-log-spec.md — 利用ログ (端末内のみ・内容は含まない) */}
+        <UsageLogCard />
 
         {/* 仕様 §13.1 / §13.6 — データ削除 (A6) */}
         <DataDeleteCard onAllDataDeleted={onAllDataDeleted} />
