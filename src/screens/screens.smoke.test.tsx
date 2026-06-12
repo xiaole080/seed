@@ -82,6 +82,23 @@ describe('画面スモークテスト — クラッシュせず描画される',
     expectRendered(render(<ProfileScreen />));
   });
 
+  it('ProfileScreen — seed.usagelog.v1 が壊れた JSON でもクラッシュしない (AC-5)', () => {
+    localStorage.setItem('seed.usagelog.v1', '{broken json');
+    expectRendered(render(<ProfileScreen />));
+    localStorage.removeItem('seed.usagelog.v1');
+  });
+
+  it('ProfileScreen — seed.usagelog.v1 が配列でない値でもクラッシュしない (AC-5)', () => {
+    localStorage.setItem('seed.usagelog.v1', JSON.stringify({ not: 'array' }));
+    expectRendered(render(<ProfileScreen />));
+    localStorage.removeItem('seed.usagelog.v1');
+  });
+
+  it('ProfileScreen — seed.usagelog.v1 が存在しない（初回起動）でもクラッシュしない (AC-5)', () => {
+    localStorage.removeItem('seed.usagelog.v1');
+    expectRendered(render(<ProfileScreen />));
+  });
+
   it('RegionSearchScreen (同意未取得)', () => {
     expectRendered(
       render(<RegionSearchScreen consent="notAsked" onPick={() => {}} />)

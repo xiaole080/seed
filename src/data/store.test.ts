@@ -401,6 +401,22 @@ describe('store — 全データ削除 (A6)', () => {
     expect(getDailyRecord('2026-05-30')?.closedDayActivity).toBeUndefined();
     expect(localStorage.getItem('seed.daily.v1')).toBeNull();
   });
+
+  it('AC-4 / AC-5: deleteAllLocalData は seed.usagelog.v1 も削除する (利用ログ全削除導線)', () => {
+    // 利用ログを書き込んでから全データ削除 → キーが消えること
+    localStorage.setItem(
+      'seed.usagelog.v1',
+      JSON.stringify([
+        { type: 'app_open', at: '2026-06-12T10:00:00.000Z' },
+        { type: 'record_save', at: '2026-06-12T10:01:00.000Z', sessionId: 's1' },
+      ])
+    );
+    expect(localStorage.getItem('seed.usagelog.v1')).not.toBeNull();
+
+    deleteAllLocalData();
+
+    expect(localStorage.getItem('seed.usagelog.v1')).toBeNull();
+  });
 });
 
 describe('store — 旧 DailyRecord 形式の互換読み込み (T1)', () => {
