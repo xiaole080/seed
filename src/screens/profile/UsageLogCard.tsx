@@ -126,7 +126,7 @@ export function UsageLogCard() {
         </div>
       ) : (
         <>
-          {/* 直近 7 日の集計 */}
+          {/* 直近 14 日の集計 */}
           <div
             style={{
               marginTop: 12,
@@ -136,7 +136,7 @@ export function UsageLogCard() {
             }}
           >
             <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6 }}>
-              直近7日のようす
+              直近14日のようす
             </div>
             {summaryRows.map(([label, value]) => (
               <div

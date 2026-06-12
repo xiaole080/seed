@@ -8,7 +8,7 @@
 
 import type { UsageEvent } from './usageLog';
 
-/** 直近 7 日 (now を含む 7 日間) の集計結果。 */
+/** 直近 14 日 (now を含む 14 日間) の集計結果。 */
 export interface UsageSummary {
   /** record_save の件数 */
   recordSaveCount: number;
@@ -32,11 +32,11 @@ export interface UsageSummary {
 /** 平均から除外する外れ値のしきい値 (秒)。決定事項 D-5。 */
 export const RECORD_DURATION_OUTLIER_SECONDS = 1800;
 
-const WINDOW_DAYS = 7;
+const WINDOW_DAYS = 14;
 
 /**
- * 直近 7 日 (now の日を含む 7 日間 = 当日 0:00 の 6 日前以降) の利用集計。
- * 8 日以上前のイベントのみの場合はすべて 0 / null になる。
+ * 直近 14 日 (now の日を含む 14 日間 = 当日 0:00 の 13 日前以降) の利用集計。
+ * 15 日以上前のイベントのみの場合はすべて 0 / null になる。
  */
 export function summarizeUsage(
   events: UsageEvent[],

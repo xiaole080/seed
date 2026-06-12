@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { UsageEvent } from './usageLog';
 import { buildUsageLogCsv, summarizeUsage } from './usageLogStats';
 
-// now はローカルタイムで固定 (summarizeUsage は当日 0:00 基準で 7 日窓を切る)
+// now はローカルタイムで固定 (summarizeUsage は当日 0:00 基準で 14 日窓を切る)
 const NOW = new Date('2026-06-12T12:00:00.000Z');
 
 function ev(
@@ -14,7 +14,7 @@ function ev(
 }
 
 describe('summarizeUsage', () => {
-  it('直近 7 日の record_save / app_open / history_open を数える', () => {
+  it('直近 14 日の record_save / app_open / history_open を数える', () => {
     const events: UsageEvent[] = [
       ev('app_open', '2026-06-12T01:00:00.000Z'),
       ev('app_open', '2026-06-11T01:00:00.000Z'),
@@ -91,13 +91,14 @@ describe('summarizeUsage', () => {
     expect(summarizeUsage(events, NOW).incompleteCount).toBe(1);
   });
 
-  it('8 日以上前のイベントのみなら各集計は 0 / null (エラーにならない)', () => {
+  it('15 日以上前のイベントのみなら各集計は 0 / null (エラーにならない)', () => {
+    // NOW = 2026-06-12 のとき 14 日窓の開始は 2026-05-30。それより前 (05-20) のみ。
     const events: UsageEvent[] = [
-      ev('app_open', '2026-06-01T00:00:00.000Z'),
-      ev('record_open', '2026-06-01T01:00:00.000Z', 's1'),
-      ev('record_save', '2026-06-01T01:01:00.000Z', 's1'),
-      ev('history_open', '2026-06-01T02:00:00.000Z'),
-      ev('record_abandon', '2026-06-01T03:00:00.000Z', 's2'),
+      ev('app_open', '2026-05-20T00:00:00.000Z'),
+      ev('record_open', '2026-05-20T01:00:00.000Z', 's1'),
+      ev('record_save', '2026-05-20T01:01:00.000Z', 's1'),
+      ev('history_open', '2026-05-20T02:00:00.000Z'),
+      ev('record_abandon', '2026-05-20T03:00:00.000Z', 's2'),
     ];
     expect(summarizeUsage(events, NOW)).toEqual({
       recordSaveCount: 0,
@@ -232,15 +233,14 @@ describe('AC-3 / AC-5: sessionId のない record_open が混在しても集計�
 });
 
 // AC-3: 集計の境界条件
-describe('AC-3: 集計の境界条件 — 直近 7 日の境界', () => {
-  it('NOW から数えてちょうど 7 日前 (window 開始日 0:00) のイベントは集計に含まれる', () => {
-    // NOW = 2026-06-12T12:00:00Z のとき start = 2026-06-06T00:00:00 (local)
-    // UTC 時計で 2026-06-06T00:00:00Z は NOW の TZ 次第。
+describe('AC-3: 集計の境界条件 — 直近 14 日の境界', () => {
+  it('NOW から数えてちょうど 13 日前 (window 開始日 0:00) のイベントは集計に含まれる', () => {
+    // NOW = 2026-06-12T12:00:00Z のとき start = 2026-05-30T00:00:00 (local)
     // summarizeUsage はローカル時刻で start を計算するため、ここでは
-    // NOW と同じ UTC 基準で「6 日前の 0:00 相当」を直接渡す。
+    // NOW と同じ TZ 基準で「13 日前の 0:00 相当」を直接渡す。
     const windowStart = new Date(NOW);
     windowStart.setHours(0, 0, 0, 0);
-    windowStart.setDate(windowStart.getDate() - 6);
+    windowStart.setDate(windowStart.getDate() - 13);
     const atWindowStart = windowStart.toISOString();
 
     const events: UsageEvent[] = [
@@ -253,7 +253,7 @@ describe('AC-3: 集計の境界条件 — 直近 7 日の境界', () => {
   it('window 開始日の 1 ミリ秒前のイベントは集計に含まれない', () => {
     const windowStart = new Date(NOW);
     windowStart.setHours(0, 0, 0, 0);
-    windowStart.setDate(windowStart.getDate() - 6);
+    windowStart.setDate(windowStart.getDate() - 13);
     const justBefore = new Date(windowStart.getTime() - 1).toISOString();
 
     const events: UsageEvent[] = [
