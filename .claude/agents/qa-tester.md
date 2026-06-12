@@ -2,7 +2,7 @@
 name: qa-tester
 description: テストの追加、lint / build / test の実行、画面遷移の破綻チェック、未入力・任意入力・自由記述などのエッジケース確認を行うときに使う。実装が一段落したあとの検証フェーズで起動する。「テストして」「lintとビルド通して」「壊れてないか確認して」といった依頼で使う。
 tools: Read, Edit, Bash, Glob, Grep
-model: Fable 5
+model: Fable
 color: orange
 ---
 
