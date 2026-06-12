@@ -343,6 +343,17 @@ export function listAttendanceByMonth(
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
+/**
+ * 全月の通所記録を日付昇順で返す (読み取り専用)。
+ * りれき画面の「データ最古月」判定に使う (history-month-nav-spec T2)。
+ * 保存形式・キー・書き込み経路は一切変更しない。
+ */
+export function listAllAttendance(): AttendanceMonthlyRecord[] {
+  return Object.values(readAttendance()).sort((a, b) =>
+    a.date < b.date ? -1 : 1
+  );
+}
+
 // ── 補助: 日付/曜日 ───────────────────────────────────────────
 
 export function todayISO(): string {

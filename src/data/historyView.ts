@@ -3,8 +3,12 @@
 
 import { MOODS, PRIMARY_INFLUENCES, CATEGORY_BY_ID } from './moods';
 import { RECORD_PRESETS } from './records';
-import { SUMMARY_COPY, RANGE_TERM } from './historyCopy';
-import type { HistoryRange } from './historyStats';
+import { SUMMARY_COPY } from './historyCopy';
+import {
+  compareYearMonth,
+  formatYearMonth,
+  type YearMonth,
+} from './monthNav';
 import type { StoredDailyRecord } from './store';
 import type {
   ActivityFlag,
@@ -56,19 +60,31 @@ export function formatDate(iso: string): string {
   return `${y}/${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
 }
 
-/** サマリー一言を組み立てる。記録ゼロ・月次・通常で文言を切り替える。 */
+/**
+ * サマリー一言を組み立てる (history-month-nav-spec §2.6)。
+ *  - 今月 / 過去月、記録あり / なしで文言を切り替える。
+ *  - ym = 表示中の月、todayYm = 今日の属する月。
+ */
 export function buildSummaryText(
   overview: { recordedDays: number; averageMood: number | null },
-  range: HistoryRange
+  ym: YearMonth,
+  todayYm: YearMonth
 ): string {
-  if (overview.recordedDays === 0) return SUMMARY_COPY.noRecords;
-  if (range === 'month') {
+  const isCurrentMonth = compareYearMonth(ym, todayYm) === 0;
+  if (overview.recordedDays === 0) {
+    return isCurrentMonth ? SUMMARY_COPY.noRecords : SUMMARY_COPY.emptyMonth;
+  }
+  if (isCurrentMonth) {
     return SUMMARY_COPY.monthlyReview(
       overview.recordedDays,
       overview.averageMood
     );
   }
-  return SUMMARY_COPY.recorded(RANGE_TERM[range], overview.recordedDays);
+  return SUMMARY_COPY.pastMonthReview(
+    formatYearMonth(ym),
+    overview.recordedDays,
+    overview.averageMood
+  );
 }
 
 export interface HiddenItem {

@@ -8,7 +8,6 @@ import {
   endRecordSession,
   listUsageEvents,
 } from './usageLog';
-import { saveJson } from '../storage';
 
 beforeEach(() => {
   localStorage.clear();

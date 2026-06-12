@@ -9,6 +9,7 @@ import {
   deleteAttendance,
   getAttendance,
   listAttendanceByMonth,
+  listAllAttendance,
   setClosedDayActivity,
   todayISO,
   nowISO,
@@ -173,6 +174,22 @@ describe('store — Attendance CRUD', () => {
     upsertAttendance(att('2026-06-01'));
     const may = listAttendanceByMonth('2026-05');
     expect(may.map((r) => r.date)).toEqual(['2026-05-10', '2026-05-25']);
+  });
+
+  // history-month-nav-spec T2: 最古月判定用の読み取り専用アクセサ。
+  it('listAllAttendance は複数月にまたがる全件を日付昇順で返す', () => {
+    upsertAttendance(att('2026-06-01'));
+    upsertAttendance(att('2026-05-25'));
+    upsertAttendance(att('2026-03-10'));
+    expect(listAllAttendance().map((r) => r.date)).toEqual([
+      '2026-03-10',
+      '2026-05-25',
+      '2026-06-01',
+    ]);
+  });
+
+  it('listAllAttendance は記録なしなら空配列 (例外を投げない)', () => {
+    expect(listAllAttendance()).toEqual([]);
   });
 
   it('DailyRecord と Attendance は別ストアに分離されている', () => {

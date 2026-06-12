@@ -20,8 +20,9 @@ import type {
 } from './types';
 import type { StoredDailyRecord } from './store';
 
-// ── 期間モード ───────────────────────────────────────────────
-export type HistoryRange = '7d' | '14d' | 'month';
+// ── 期間 ─────────────────────────────────────────────────────
+// 表示期間は暦月単位 (monthNav.ts の YearMonth / monthRange)。
+// ここでは汎用の DateRange と日付ユーティリティ・集計関数を提供する。
 
 export interface DateRange {
   /** 期間開始日 (含む) YYYY-MM-DD */
@@ -46,20 +47,6 @@ function isoFromYMD(y: number, m1: number, d: number): string {
 export function shiftISO(isoDate: string, offsetDays: number): string {
   const [y, m, d] = isoDate.split('-').map(Number);
   return isoFromYMD(y, m, d + offsetDays);
-}
-
-/**
- * 期間モードと「今日」から日付レンジを算出する。
- *  - 7d / 14d : 今日を含む過去 7 / 14 日。
- *  - month    : 当月 1 日 〜 今日。
- */
-export function rangeFor(mode: HistoryRange, todayISODate: string): DateRange {
-  if (mode === 'month') {
-    const [y, m] = todayISODate.split('-').map(Number);
-    return { start: isoFromYMD(y, m, 1), end: todayISODate };
-  }
-  const span = mode === '7d' ? 7 : 14;
-  return { start: shiftISO(todayISODate, -(span - 1)), end: todayISODate };
 }
 
 /** date が [start, end] (両端含む) に入るか */
