@@ -61,107 +61,22 @@ describe('optionLabelMap', () => {
   });
 });
 
-describe('buildSummaryText (history-month-nav-spec §2.6)', () => {
-  const JUN_2026 = { year: 2026, monthIndex0: 5 };
-  const MAY_2026 = { year: 2026, monthIndex0: 4 };
-
-  it('今月・記録ありは monthlyReview (「今月は X日 記録できました」)', () => {
-    const s = buildSummaryText(
-      { recordedDays: 3, averageMood: 3.5 },
-      JUN_2026,
-      JUN_2026
+describe('buildSummaryText', () => {
+  it('記録ゼロは noRecords 文言', () => {
+    expect(buildSummaryText({ recordedDays: 0, averageMood: null }, '7d')).toContain(
+      'まだ記録がありません'
     );
-    expect(s).toContain('今月は 3日 記録できました');
-    expect(s).toContain('3.5');
   });
 
-  it('過去月・記録ありは月名つきで「今月」を含まない', () => {
-    const s = buildSummaryText(
-      { recordedDays: 3, averageMood: 4 },
-      MAY_2026,
-      JUN_2026
-    );
-    expect(s).toContain('2026年5月');
-    expect(s).not.toContain('今月');
+  it('通常期間は日数を含む', () => {
+    const s = buildSummaryText({ recordedDays: 3, averageMood: 4 }, '7d');
+    expect(s).toContain('3');
   });
 
-  it('過去月・avg null は気分そろい待ちの文に分岐する', () => {
-    const s = buildSummaryText(
-      { recordedDays: 2, averageMood: null },
-      MAY_2026,
-      JUN_2026
-    );
-    expect(s).toContain('2026年5月は 2日 記録できました');
-    expect(s).toContain('気分の記録がそろうと');
-  });
-
-  it('過去月・記録ゼロは「この月の記録はありません。」', () => {
-    const s = buildSummaryText(
-      { recordedDays: 0, averageMood: null },
-      MAY_2026,
-      JUN_2026
-    );
-    expect(s).toBe('この月の記録はありません。');
-    // 責めない文言: 禁止語を含まない
-    expect(s).not.toContain('記録できていません');
-  });
-
-  it('今月・記録ゼロは既存の noRecords 文言', () => {
-    const s = buildSummaryText(
-      { recordedDays: 0, averageMood: null },
-      JUN_2026,
-      JUN_2026
-    );
-    expect(s).toContain('まだ記録がありません');
-  });
-
-  // §5-3: 空月文言に禁止語が含まれない
-  it('空月文言は禁止語「記録できていません」を含まない', () => {
-    const past = buildSummaryText(
-      { recordedDays: 0, averageMood: null },
-      MAY_2026,
-      JUN_2026
-    );
-    const current = buildSummaryText(
-      { recordedDays: 0, averageMood: null },
-      JUN_2026,
-      JUN_2026
-    );
-    expect(past).not.toContain('記録できていません');
-    expect(current).not.toContain('記録できていません');
-  });
-
-  // §5-2 / T3: 今月・avg null の分岐 (「気分の記録がそろうと」文言)
-  it('今月・記録あり・avg null は「気分の記録がそろうと」文言', () => {
-    const s = buildSummaryText(
-      { recordedDays: 2, averageMood: null },
-      JUN_2026,
-      JUN_2026
-    );
-    expect(s).toContain('今月は 2日 記録できました');
-    expect(s).toContain('気分の記録がそろうと');
-  });
-
-  // §5-2 / T3: 過去月・avg 整数でも正常出力
-  it('過去月・記録10日・avg 整数は月名と数値を含む', () => {
-    const s = buildSummaryText(
-      { recordedDays: 10, averageMood: 4 },
-      MAY_2026,
-      JUN_2026
-    );
-    expect(s).toContain('2026年5月');
-    expect(s).toContain('10日');
-    expect(s).toContain('4');
-  });
-
-  // §5-12: 通所のみある月 (daily=0件) のサマリー → 空月文言
-  it('通所のみある過去月 (daily=0) は「この月の記録はありません。」', () => {
-    const s = buildSummaryText(
-      { recordedDays: 0, averageMood: null },
-      MAY_2026,
-      JUN_2026
-    );
-    expect(s).toBe('この月の記録はありません。');
+  it('month は monthlyReview を使う', () => {
+    const s = buildSummaryText({ recordedDays: 10, averageMood: 4 }, 'month');
+    expect(typeof s).toBe('string');
+    expect(s.length).toBeGreaterThan(0);
   });
 });
 

@@ -1,13 +1,15 @@
-import { PALETTE } from '../theme';
+import { PALETTE, ROUNDED_FONT, CARD_SHADOW } from '../theme';
 import { PhoneShell } from '../components/PhoneShell';
 import { BackgroundLeaves } from '../components/BackgroundLeaves';
 import { BottomTabs, type TabId } from '../components/BottomTabs';
 import { DEFAULT_RECORD_IDS } from '../data/records';
-import { countRecordedDaysInRange } from '../data/historyStats';
-import { MONTH_NAV_COPY } from '../data/historyCopy';
+import {
+  countRecordedDaysInRange,
+  datesInRange,
+  type HistoryRange,
+} from '../data/historyStats';
+import { RANGE_LABEL, RANGE_TERM } from '../data/historyCopy';
 import { useHistoryScreen } from './history/useHistoryScreen';
-import { useSwipeMonth } from './history/useSwipeMonth';
-import { MonthNavHeader } from './history/MonthNavHeader';
 import { StatCard, SectionCard } from './history/parts';
 import { MoodTrend } from './history/MoodTrend';
 import { InfluenceRanking } from './history/InfluenceRanking';
@@ -20,34 +22,25 @@ import { RecentRecords } from './history/RecentRecords';
 interface HistoryScreenProps {
   /** 「わたし」画面で ON の記録項目。既定は全 5 項目 ON。 */
   recordIds?: string[];
+  /** 初期の期間モード。既定は 7 日。 */
+  initialRange?: HistoryRange;
   onTab?: (t: TabId) => void;
 }
 
+const RANGES: HistoryRange[] = ['7d', '14d', 'month'];
+
 export function HistoryScreen({
   recordIds = DEFAULT_RECORD_IDS,
+  initialRange = '7d',
   onTab,
 }: HistoryScreenProps) {
-  const {
-    headerLabel,
-    canGoPrev,
-    canGoNext,
-    goPrev,
-    goNext,
-    timelineDates,
-    daily,
-    attendance,
-    overview,
-    summaryText,
-  } = useHistoryScreen();
-
-  // 横スワイプは補助操作 (T6)。境界越えは goPrev/goNext 側のガードで no-op。
-  const swipeHandlers = useSwipeMonth(goPrev, goNext);
+  const { range, setRange, dateRange, daily, attendance, overview, summaryText } =
+    useHistoryScreen(initialRange);
 
   return (
     <PhoneShell bg={PALETTE.creamSoft} label="06 きろく">
       <BackgroundLeaves />
       <div
-        {...swipeHandlers}
         style={{
           flex: 1,
           display: 'flex',
@@ -62,18 +55,47 @@ export function HistoryScreen({
         <div style={{ marginTop: 6, marginBottom: 14 }}>
           <div style={{ fontSize: 22, fontWeight: 700 }}>きろく</div>
           <div style={{ fontSize: 12, color: PALETTE.inkSoft, marginTop: 4 }}>
-            {MONTH_NAV_COPY.headerNote}
+            {RANGE_TERM[range]}の あなたの 様子です
           </div>
         </div>
 
-        {/* 月ナビゲーションヘッダー (month-nav T5) */}
-        <MonthNavHeader
-          label={headerLabel}
-          canGoPrev={canGoPrev}
-          canGoNext={canGoNext}
-          onPrev={goPrev}
-          onNext={goNext}
-        />
+        {/* 期間切替タブ (T1) */}
+        <div
+          style={{
+            display: 'flex',
+            background: '#fff',
+            borderRadius: 14,
+            padding: 4,
+            boxShadow: CARD_SHADOW,
+            marginBottom: 12,
+            gap: 2,
+          }}
+        >
+          {RANGES.map((r) => {
+            const sel = range === r;
+            return (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: sel ? PALETTE.sageDeep : 'transparent',
+                  color: sel ? '#fff' : PALETTE.inkSoft,
+                  padding: '9px 4px',
+                  borderRadius: 10,
+                  fontSize: 12,
+                  fontFamily: ROUNDED_FONT,
+                  fontWeight: sel ? 700 : 500,
+                  transition: 'all .12s',
+                }}
+              >
+                {RANGE_LABEL[r]}
+              </button>
+            );
+          })}
+        </div>
 
         {/* 責めないサマリー一言 (T2) */}
         <div
@@ -121,7 +143,7 @@ export function HistoryScreen({
 
         {/* 気分の可視化 (T3) */}
         <SectionCard>
-          <MoodTrend records={daily} rangeLabel={headerLabel} />
+          <MoodTrend records={daily} rangeLabel={RANGE_LABEL[range]} />
         </SectionCard>
 
         {/* 影響要因ランキング (T4) */}
@@ -140,10 +162,9 @@ export function HistoryScreen({
         {/* T13: OFF項目に過去データがある場合の控えめ表示 */}
         <HiddenItemsNote recordIds={recordIds} records={daily} />
 
-        {/* T12: 日付つき時系列。記録なしの日も空きとして表示する。
-            今月のみ未来日を出さないよう今日でクランプ済み (month-nav §2.1)。 */}
+        {/* T12: 日付つき時系列。記録なしの日も空きとして表示する。 */}
         <DateTimeline
-          dates={timelineDates}
+          dates={datesInRange(dateRange)}
           daily={daily}
           attendance={attendance}
           recordIds={recordIds}

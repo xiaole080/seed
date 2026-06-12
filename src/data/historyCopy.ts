@@ -12,33 +12,36 @@
 //
 // ※ ここは文言テーブルのみ。ロジックや副作用は持たない。
 
-// ── 月ナビゲーション (history-month-nav-spec §2.2 / §2.3) ────
-export const MONTH_NAV_COPY = {
-  /** ヘッダー下の説明文 */
-  headerNote: 'この月の あなたの 様子です',
-  /** 矢印ボタンの aria-label */
-  prevMonth: '前の月へ',
-  nextMonth: '次の月へ',
-} as const;
+import type { HistoryRange } from './historyStats';
 
-// ── サマリー一言 (月ナビ直下の1行) ──────────────────────────
+/** 期間モードの表示ラベル */
+export const RANGE_LABEL: Record<HistoryRange, string> = {
+  '7d': '7日',
+  '14d': '14日',
+  month: '今月',
+};
+
+/** サマリー文の中で使う「期間」の言い回し */
+export const RANGE_TERM: Record<HistoryRange, string> = {
+  '7d': 'この7日',
+  '14d': 'この14日',
+  month: '今月',
+};
+
+// ── サマリー一言 (期間タブ直下の1行) ────────────────────────
 export const SUMMARY_COPY = {
-  /** 今月に記録がまったく無いとき */
+  /** 期間内に記録がまったく無いとき */
   noRecords: 'まだ記録がありません。気が向いたときに記録してみてください。',
-  /** 過去月に記録がまったく無いとき (責めない中立文) */
-  emptyMonth: 'この月の記録はありません。',
+  /** 記録はあるが日数を肯定的に伝える (term=期間, days=記録日数) */
+  recorded: (term: string, days: number) =>
+    `${term}は ${days}日 記録できています。`,
   /** 睡眠の記録が少なく傾向が見えにくいとき (判断を保留する中立文) */
   sleepSparse: '睡眠の記録が少ないため、まだ傾向は見えにくいです。',
-  /** 今月の振り返り (days=記録日数, avg=平均 or null) */
+  /** 「今月」モードの月末振り返り (days=記録日数, avg=平均 or null) */
   monthlyReview: (days: number, avg: number | null) =>
     avg != null
       ? `今月は ${days}日 記録できました。記録した日の気分の平均は ${avg} でした。`
       : `今月は ${days}日 記録できました。気分の記録がそろうと、振り返りやすくなります。`,
-  /** 過去月の振り返り (monthLabel=「2026年5月」, days, avg) */
-  pastMonthReview: (monthLabel: string, days: number, avg: number | null) =>
-    avg != null
-      ? `${monthLabel}は ${days}日 記録できました。記録した日の気分の平均は ${avg} でした。`
-      : `${monthLabel}は ${days}日 記録できました。気分の記録がそろうと、振り返りやすくなります。`,
 } as const;
 
 // ── 空状態 (各セクションでデータが無いとき) ─────────────────

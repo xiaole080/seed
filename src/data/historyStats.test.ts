@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   shiftISO,
+  rangeFor,
   inRange,
   monthsInRange,
   filterDailyByRange,
@@ -90,6 +91,50 @@ describe('shiftISO', () => {
   it('大きな日数オフセットでも破綻しない', () => {
     expect(shiftISO('2026-05-23', 365)).toBe('2027-05-23');
     expect(shiftISO('2026-05-23', -365)).toBe('2025-05-23');
+  });
+});
+
+describe('rangeFor', () => {
+  it('7d は今日を含む過去7日', () => {
+    expect(rangeFor('7d', '2026-05-23')).toEqual({
+      start: '2026-05-17',
+      end: '2026-05-23',
+    });
+  });
+
+  it('14d は今日を含む過去14日', () => {
+    expect(rangeFor('14d', '2026-05-23')).toEqual({
+      start: '2026-05-10',
+      end: '2026-05-23',
+    });
+  });
+
+  it('month は当月1日〜今日', () => {
+    expect(rangeFor('month', '2026-05-23')).toEqual({
+      start: '2026-05-01',
+      end: '2026-05-23',
+    });
+  });
+
+  it('月初に 14d を選ぶと前月にまたがる', () => {
+    expect(rangeFor('14d', '2026-05-03')).toEqual({
+      start: '2026-04-20',
+      end: '2026-05-03',
+    });
+  });
+
+  it('年初に 7d を選ぶと前年にまたがる', () => {
+    expect(rangeFor('7d', '2026-01-03')).toEqual({
+      start: '2025-12-28',
+      end: '2026-01-03',
+    });
+  });
+
+  it('today がそのまま月初のとき month は1日のみ', () => {
+    expect(rangeFor('month', '2026-05-01')).toEqual({
+      start: '2026-05-01',
+      end: '2026-05-01',
+    });
   });
 });
 
